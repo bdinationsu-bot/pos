@@ -24,6 +24,7 @@ const menus: Menu[] = [
   { href: '/purchases', labelKey: 'menu.purchases', icon: '🛍️', roles: ['owner', 'manager', 'accountant'] },
   { href: '/accounting', labelKey: 'menu.accounting', icon: '📊', roles: ['owner', 'manager', 'accountant'] },
   { href: '/staff', labelKey: 'menu.staff', icon: '👥', roles: ['owner', 'manager'] },
+  { href: '/expense-codes', labelKey: 'menu.expense_codes', icon: '🏷️', roles: ['owner', 'manager', 'accountant'] },
   { href: '/users', labelKey: 'menu.users', icon: '👤', roles: ['owner'] },
   { href: '/settings', labelKey: 'menu.settings', icon: '⚙️', roles: ['owner', 'manager'] },
 ]

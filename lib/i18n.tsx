@@ -46,6 +46,7 @@ const translations: Record<string, { en: string; mm: string }> = {
   'menu.settings': { en: 'Settings', mm: 'ဆက်တင်' },
   'menu.dashboard': { en: 'Dashboard', mm: 'ပင်မစာမျက်နှာ' },
   'menu.users': { en: 'Users', mm: 'အသုံးပြုသူများ' },
+  'menu.expense_codes': { en: 'Expense Codes', mm: 'Expense ကုဒ်များ' },
 
   'pos.title': { en: 'POS', mm: 'အရောင်း' },
   'pos.scan_placeholder': { en: 'IMEI scan or type', mm: 'IMEI scan (သို့) ရိုက်ထည့်' },
