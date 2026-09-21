@@ -16,7 +16,8 @@ const STATUS_LABELS: Record<string, string> = {
 const STATUS_FLOW = ['received', 'diagnosing', 'waiting_parts', 'in_progress', 'completed', 'delivered']
 
 export default function RepairDetail() {
-  const { id } = useParams()
+  const params = useParams()
+const id = params.id as string
   const router = useRouter()
   const [r, setR] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
