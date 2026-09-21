@@ -47,31 +47,42 @@ export default function UsersPage() {
 
     if (error) {
       setInviting(false)
-      return alert('❌ Error: ' + error.message)
+      let msg = error.message
+      if (msg.includes('already registered') || msg.includes('already exists')) {
+        msg = 'ဒီ Email က ရှိပြီးသား'
+      }
+      if (msg.includes('confirmation')) {
+        msg = 'Email confirmation ကို OFF လုပ်ပါ (Supabase Settings)'
+      }
+      return alert('❌ ' + msg)
     }
 
-    // Update profile role + phone
     if (data.user) {
-      await supabase.from('profiles').upsert({
+      const { error: profErr } = await supabase.from('profiles').upsert({
         id: data.user.id,
         email: invite.email,
         full_name: invite.full_name,
         phone: invite.phone || null,
-        role: invite.role,
+        role: invite.role as any,
         active: true
       })
+      
+      if (profErr) {
+        setInviting(false)
+        return alert('⚠️ Auth user ဆောက်ပြီး၊ ဒါပေမယ့် profile မထည့်နိုင်ဘူး: ' + profErr.message)
+      }
     }
 
     setInviting(false)
     setInvite({ email: '', full_name: '', role: 'cashier', password: '', phone: '' })
     setShowInvite(false)
-    alert('✅ User ဆောက်ပြီးပါပြီ\n\n' + invite.email + ' ကို login ပေးပါ')
+    alert('✅ User ဆောက်ပြီးပါပြီ\n\n' + invite.email + ' / ' + invite.password)
     load()
   }
 
   async function updateRole(id: string, role: string) {
     if (myRole !== 'owner') return alert('Owner ပဲ role ပြောင်းလို့ ရပါတယ်')
-    const { error } = await supabase.from('profiles').update({ role }).eq('id', id)
+    const { error } = await supabase.from('profiles').update({ role: role as any }).eq('id', id)
     if (error) return alert(error.message)
     load()
   }
@@ -94,9 +105,8 @@ export default function UsersPage() {
   async function deleteUser(id: string, email: string) {
     if (myRole !== 'owner') return alert('Owner ပဲ ဖျက်လို့ ရပါတယ်')
     if (!confirm(`${email} ကို ဖျက်မှာ သေချာလား?`)) return
-
     await supabase.from('profiles').delete().eq('id', id)
-    alert('⚠️ Profile ဖျက်ပြီးပါပြီ\n\nAuth user ကို Supabase Dashboard → Authentication → Users မှာ ဖျက်ရမယ်')
+    alert('⚠️ Profile ဖျက်ပြီး — Auth user ကို Supabase → Authentication → Users မှာ ဆက်ဖျက်ပါ')
     load()
   }
 
@@ -114,7 +124,7 @@ export default function UsersPage() {
         <div>
           <h1 className="text-2xl font-bold text-green-800">Users</h1>
           <p className="text-xs text-gray-500 mt-1">
-            မင်း Role: <strong className="text-green-700 capitalize">{myRole || '...'}</strong>
+            Role: <strong className="text-green-700 capitalize">{myRole || '...'}</strong>
           </p>
         </div>
         {myRole === 'owner' && (
@@ -136,56 +146,32 @@ export default function UsersPage() {
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-sm font-medium mb-1">Email *</label>
-              <input
-                type="email"
-                value={invite.email}
-                onChange={e => setInvite({ ...invite, email: e.target.value })}
-                placeholder="user@example.com"
-                className="border p-2 rounded w-full"
-              />
+              <input type="email" value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })}
+                placeholder="user@example.com" className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">နာမည် *</label>
-              <input
-                value={invite.full_name}
-                onChange={e => setInvite({ ...invite, full_name: e.target.value })}
-                placeholder="Aung Aung"
-                className="border p-2 rounded w-full"
-              />
+              <input value={invite.full_name} onChange={e => setInvite({ ...invite, full_name: e.target.value })}
+                placeholder="Aung Aung" className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">ဖုန်း</label>
-              <input
-                value={invite.phone}
-                onChange={e => setInvite({ ...invite, phone: e.target.value })}
-                placeholder="09xxxxxxxxx"
-                className="border p-2 rounded w-full"
-              />
+              <input value={invite.phone} onChange={e => setInvite({ ...invite, phone: e.target.value })}
+                placeholder="09xxxxxxxxx" className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password * (min 6)</label>
-              <input
-                type="password"
-                value={invite.password}
-                onChange={e => setInvite({ ...invite, password: e.target.value })}
-                placeholder="••••••"
-                className="border p-2 rounded w-full"
-              />
+              <input type="password" value={invite.password} onChange={e => setInvite({ ...invite, password: e.target.value })}
+                placeholder="••••••" className="border p-2 rounded w-full" />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1">Role</label>
               <div className="grid grid-cols-5 gap-2">
                 {ROLES.map(r => (
-                  <button
-                    key={r}
-                    type="button"
-                    onClick={() => setInvite({ ...invite, role: r })}
+                  <button key={r} type="button" onClick={() => setInvite({ ...invite, role: r })}
                     className={`py-2 rounded border-2 font-medium capitalize text-sm transition ${
-                      invite.role === r
-                        ? 'bg-green-600 text-white border-green-600'
-                        : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
-                    }`}
-                  >
+                      invite.role === r ? 'bg-green-600 text-white border-green-600' : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
+                    }`}>
                     {t('role.' + r)}
                   </button>
                 ))}
@@ -196,17 +182,13 @@ export default function UsersPage() {
             <button onClick={createUser} disabled={inviting} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium disabled:opacity-50">
               {inviting ? 'ဆောက်နေတယ်...' : '✅ User ဆောက်'}
             </button>
-            <button onClick={() => setShowInvite(false)} className="bg-gray-200 px-6 py-2 rounded font-medium">
-              ပယ်ဖျက်
-            </button>
+            <button onClick={() => setShowInvite(false)} className="bg-gray-200 px-6 py-2 rounded font-medium">ပယ်ဖျက်</button>
           </div>
         </div>
       )}
 
       <div className="bg-white rounded shadow overflow-hidden">
-        {loading ? (
-          <p className="p-8 text-center text-gray-400">...</p>
-        ) : (
+        {loading ? <p className="p-8 text-center text-gray-400">...</p> : (
           <table className="w-full text-sm">
             <thead className="bg-green-50">
               <tr>
@@ -219,9 +201,7 @@ export default function UsersPage() {
               </tr>
             </thead>
             <tbody>
-              {list.length === 0 && (
-                <tr><td colSpan={6} className="p-8 text-center text-gray-400">User မရှိပါ</td></tr>
-              )}
+              {list.length === 0 && <tr><td colSpan={6} className="p-8 text-center text-gray-400">User မရှိပါ</td></tr>}
               {list.map(u => (
                 <tr key={u.id} className="border-t hover:bg-green-50">
                   <td className="p-3 font-mono text-xs">{u.email}</td>
@@ -229,27 +209,18 @@ export default function UsersPage() {
                   <td className="p-3 text-gray-600">{u.phone || '-'}</td>
                   <td className="p-3">
                     {myRole === 'owner' ? (
-                      <select
-                        value={u.role}
-                        onChange={e => updateRole(u.id, e.target.value)}
-                        className={`border p-1 rounded text-xs font-medium ${roleColors[u.role]}`}
-                      >
+                      <select value={u.role} onChange={e => updateRole(u.id, e.target.value)}
+                        className={`border p-1 rounded text-xs font-medium ${roleColors[u.role]}`}>
                         {ROLES.map(r => <option key={r} value={r}>{t('role.' + r)}</option>)}
                       </select>
                     ) : (
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[u.role]}`}>
-                        {t('role.' + u.role)}
-                      </span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[u.role]}`}>{t('role.' + u.role)}</span>
                     )}
                   </td>
                   <td className="p-3 text-center">
                     {myRole === 'owner' ? (
-                      <button
-                        onClick={() => toggleActive(u.id, u.active)}
-                        className={`px-2 py-1 rounded text-xs font-medium ${
-                          u.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'
-                        }`}
-                      >
+                      <button onClick={() => toggleActive(u.id, u.active)}
+                        className={`px-2 py-1 rounded text-xs font-medium ${u.active ? 'bg-green-100 text-green-800' : 'bg-gray-200 text-gray-600'}`}>
                         {u.active ? '✅ Active' : '⏸ Inactive'}
                       </button>
                     ) : (
@@ -261,18 +232,8 @@ export default function UsersPage() {
                   <td className="p-3 text-right">
                     {myRole === 'owner' && (
                       <div className="flex gap-2 justify-end">
-                        <button
-                          onClick={() => resetPassword(u.email)}
-                          className="text-xs text-blue-600 hover:underline"
-                        >
-                          Reset PW
-                        </button>
-                        <button
-                          onClick={() => deleteUser(u.id, u.email)}
-                          className="text-xs text-red-600 hover:underline"
-                        >
-                          ဖျက်
-                        </button>
+                        <button onClick={() => resetPassword(u.email)} className="text-xs text-blue-600 hover:underline">Reset PW</button>
+                        <button onClick={() => deleteUser(u.id, u.email)} className="text-xs text-red-600 hover:underline">ဖျက်</button>
                       </div>
                     )}
                   </td>
@@ -283,24 +244,10 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded text-sm">
-        <strong className="text-blue-800">📌 Role အဓိပ္ပာယ်:</strong>
-        <ul className="ml-4 mt-2 space-y-1 text-gray-700">
-          <li><strong>Owner</strong> — အားလုံး + Users + Settings</li>
-          <li><strong>Manager</strong> — POS, Inventory, Purchases, Accounting, Staff</li>
-          <li><strong>Cashier</strong> — POS, Inventory, Trade-in</li>
-          <li><strong>Technician</strong> — Repair Desk</li>
-          <li><strong>Viewer</strong> — ကြည့်ရုံပဲ</li>
-        </ul>
-      </div>
-
       <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm">
-        <strong className="text-yellow-800">⚠️ အရေးကြီး:</strong>
+        <strong className="text-yellow-800">⚠️ Supabase Settings လိုအပ်:</strong>
         <div className="mt-2 text-gray-700">
-          User အသစ် ဆောက်တဲ့အခါ Email ကို <strong>Auto Confirm</strong> ဖြစ်ဖို့ လိုတယ်။ 
-          Supabase Dashboard → <strong>Authentication → Providers → Email</strong> မှာ 
-          <strong>"Confirm email"</strong> ကို <strong>OFF</strong> ထားပါ။
-          မဟုတ်ရင် user က email verify မလုပ်နိုင်ရင် login ဝင်လို့ မရဘူး။
+          Authentication → Providers → Email → <strong>"Confirm email" = OFF</strong>
         </div>
       </div>
     </div>

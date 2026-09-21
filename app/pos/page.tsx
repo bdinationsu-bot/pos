@@ -12,6 +12,12 @@ type CartItem = {
   qty: number
   price: number
   cost: number
+  battery_health?: number | null
+  grade?: string | null
+  region?: string | null
+  storage?: string | null
+  color?: string | null
+  warranty_days?: number
 }
 
 export default function POSPage() {
@@ -46,10 +52,19 @@ export default function POSPage() {
       return alert(t('pos.already_in_cart'))
     }
     setCart([...cart, {
-      item_type: 'device', item_id: data.id,
+      item_type: 'device',
+      item_id: data.id,
       name: `${data.model} ${data.storage ?? ''} ${data.color ?? ''}`.trim(),
       imei: data.imei ?? undefined,
-      qty: 1, price: Number(data.sale_price), cost: Number(data.cost_price)
+      qty: 1,
+      price: Number(data.sale_price),
+      cost: Number(data.cost_price),
+      battery_health: data.battery_health ?? null,
+      grade: data.grade ?? null,
+      region: data.region ?? null,
+      storage: data.storage ?? null,
+      color: data.color ?? null,
+      warranty_days: data.warranty_days ?? 0
     }])
     setImei('')
   }
@@ -81,13 +96,20 @@ export default function POSPage() {
     setLoading(false)
     if (error) return alert('Error: ' + error.message)
     alert(`${t('pos.sold_success')} ${data}`)
-window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
+    window.open(`/print/invoice/${data}`, '_blank', 'width=900,height=1200')
     setCart([]); setDiscount(0); setTradein(0); setPayModal(null); setPayRef('')
+  }
+
+  const batteryColor = (h?: number | null) => {
+    if (!h) return 'text-gray-400'
+    if (h >= 90) return 'text-green-600 font-bold'
+    if (h >= 80) return 'text-yellow-600 font-bold'
+    return 'text-red-600 font-bold'
   }
 
   return (
     <div className="min-h-screen bg-gray-50 p-4">
-      <h1 className="text-2xl font-bold mb-4 text-green-800">POS</h1>
+      <h1 className="text-2xl font-bold mb-4 text-green-800">{t('pos.title')}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-lg shadow p-4">
@@ -100,53 +122,64 @@ window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
               className="border p-3 flex-1 rounded text-lg focus:outline-none focus:ring-2 focus:ring-green-500"
               autoFocus
             />
-            <button
-              onClick={scanImei} disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 rounded disabled:opacity-50"
-            >
+            <button onClick={scanImei} disabled={loading}
+              className="bg-green-600 hover:bg-green-700 text-white px-6 rounded disabled:opacity-50">
               {loading ? '...' : t('common.add')}
             </button>
           </div>
 
-          <table className="w-full border-collapse">
-            <thead className="bg-gray-100">
-              <tr>
-                <th className="p-2 text-left">{t('pos.item')}</th>
-                <th className="p-2 text-left">{t('pos.imei')}</th>
-                <th className="p-2 text-right">{t('common.price')}</th>
-                <th className="p-2 w-16"></th>
-              </tr>
-            </thead>
-            <tbody>
-              {cart.length === 0 && (
-                <tr><td colSpan={4} className="p-8 text-center text-gray-400">{t('pos.cart_empty')}</td></tr>
-              )}
-              {cart.map((c, i) => (
-                <tr key={i} className="border-t">
-                  <td className="p-2">{c.name}</td>
-                  <td className="p-2 text-xs text-gray-500">{c.imei}</td>
-                  <td className="p-2 text-right">{c.price.toLocaleString()}</td>
-                  <td className="p-2 text-center">
-                    <button onClick={() => removeItem(i)} className="text-red-600 text-sm">{t('common.delete')}</button>
-                  </td>
-                </tr>
-              ))}
-            </tbody>
-          </table>
+          <div className="space-y-2">
+            {cart.length === 0 && (
+              <div className="p-8 text-center text-gray-400">{t('pos.cart_empty')}</div>
+            )}
+            {cart.map((c, i) => (
+              <div key={i} className="border rounded-lg p-3 bg-green-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="font-bold text-green-800">{c.name}</div>
+                    <div className="text-xs font-mono text-gray-600 mt-1">IMEI: {c.imei}</div>
+                    <div className="flex gap-2 mt-2 text-xs flex-wrap">
+                      {c.battery_health != null && (
+                        <span className="bg-white px-2 py-0.5 rounded border">
+                          🔋 <span className={batteryColor(c.battery_health)}>{c.battery_health}%</span>
+                        </span>
+                      )}
+                      {c.grade && (
+                        <span className="bg-white px-2 py-0.5 rounded border">
+                          Grade <strong className="text-green-700">{c.grade}</strong>
+                        </span>
+                      )}
+                      {c.region && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">
+                          {c.region}
+                        </span>
+                      )}
+                      {c.warranty_days > 0 && (
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">
+                          🛡️ {c.warranty_days} ရက်
+                        </span>
+                      )}
+                    </div>
+                  </div>
+                  <div className="text-right">
+                    <div className="font-bold text-green-700">{c.price.toLocaleString()}</div>
+                    <button onClick={() => removeItem(i)} className="text-red-600 text-xs mt-1">
+                      {t('common.delete')}
+                    </button>
+                  </div>
+                </div>
+              </div>
+            ))}
+          </div>
         </div>
 
         <div className="bg-white rounded-lg shadow p-4 space-y-3">
           <div className="flex justify-between items-center">
             <span>{t('pos.staff_select')}</span>
-            <select
-              value={staffId ?? ''}
-              onChange={e => setStaffId(e.target.value ? +e.target.value : null)}
-              className="border p-1 rounded w-32"
-            >
+            <select value={staffId ?? ''} onChange={e => setStaffId(e.target.value ? +e.target.value : null)}
+              className="border p-1 rounded w-32">
               <option value="">--</option>
-              {staffList.map(s => (
-                <option key={s.id} value={s.id}>{s.name}</option>
-              ))}
+              {staffList.map(s => <option key={s.id} value={s.id}>{s.name}</option>)}
             </select>
           </div>
 
@@ -156,11 +189,13 @@ window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
           </div>
           <div className="flex justify-between items-center">
             <span>{t('pos.discount')}</span>
-            <input type="number" value={discount || ''} onChange={e => setDiscount(+e.target.value || 0)} className="border p-1 w-32 text-right rounded" placeholder="0" />
+            <input type="number" value={discount || ''} onChange={e => setDiscount(+e.target.value || 0)}
+              className="border p-1 w-32 text-right rounded" placeholder="0" />
           </div>
           <div className="flex justify-between items-center">
             <span>{t('pos.tradein_amount')}</span>
-            <input type="number" value={tradein || ''} onChange={e => setTradein(+e.target.value || 0)} className="border p-1 w-32 text-right rounded" placeholder="0" />
+            <input type="number" value={tradein || ''} onChange={e => setTradein(+e.target.value || 0)}
+              className="border p-1 w-32 text-right rounded" placeholder="0" />
           </div>
           <hr />
           <div className="flex justify-between text-lg font-bold">
@@ -170,12 +205,9 @@ window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
 
           <div className="grid grid-cols-2 gap-2 pt-2">
             {PAYMENT_CATEGORIES.map(cat => (
-              <button
-                key={cat.code}
-                onClick={() => openPayment(cat)}
+              <button key={cat.code} onClick={() => openPayment(cat)}
                 disabled={loading || cart.length === 0}
-                className={`${cat.color} hover:opacity-90 text-white py-3 rounded font-medium disabled:opacity-50 flex items-center justify-center gap-2`}
-              >
+                className={`${cat.color} hover:opacity-90 text-white py-3 rounded font-medium disabled:opacity-50 flex items-center justify-center gap-2`}>
                 <span>{cat.icon}</span>
                 <span className="text-sm">{t('payment.' + cat.code)}</span>
               </button>
@@ -189,8 +221,7 @@ window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5">
             <div className="flex justify-between items-center mb-4">
               <h2 className="text-lg font-bold flex items-center gap-2">
-                <span>{payModal.icon}</span>
-                <span>{payModal.name}</span>
+                <span>{payModal.icon}</span><span>{payModal.name}</span>
               </h2>
               <button onClick={() => setPayModal(null)} className="text-gray-400 text-2xl leading-none">×</button>
             </div>
@@ -200,12 +231,8 @@ window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
             </div>
             <div className="space-y-2 mb-4 max-h-72 overflow-y-auto">
               {payModal.providers.map(p => (
-                <button
-                  key={p.code}
-                  onClick={() => doCheckout(payModal.code, p.code)}
-                  disabled={loading}
-                  className="w-full text-left border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 px-4 py-3 rounded-lg font-medium disabled:opacity-50"
-                >
+                <button key={p.code} onClick={() => doCheckout(payModal.code, p.code)} disabled={loading}
+                  className="w-full text-left border-2 border-gray-200 hover:border-green-500 hover:bg-green-50 px-4 py-3 rounded-lg font-medium disabled:opacity-50">
                   {p.name}
                 </button>
               ))}
