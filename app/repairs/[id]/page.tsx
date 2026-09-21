@@ -141,9 +141,9 @@ const id = params.id as string
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.print()} className="bg-white border-2 border-green-600 text-green-700 px-4 py-2 rounded font-medium">
-            🖨️ Print
-          </button>
+          <button onClick={() => window.open(`/print/ticket/${id}`, '_blank', 'width=400,height=700')} className="bg-white border-2 border-green-600 text-green-700 px-4 py-2 rounded font-medium">
+  🖨️ Print
+</button>
           <button onClick={() => router.push('/repairs')} className="bg-gray-200 px-4 py-2 rounded font-medium">
             ← ပြန်
           </button>

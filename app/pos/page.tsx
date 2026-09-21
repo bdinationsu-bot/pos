@@ -81,6 +81,7 @@ export default function POSPage() {
     setLoading(false)
     if (error) return alert('Error: ' + error.message)
     alert(`${t('pos.sold_success')} ${data}`)
+window.open(`/print/invoice/${data}`, '_blank', 'width=400,height=600')
     setCart([]); setDiscount(0); setTradein(0); setPayModal(null); setPayRef('')
   }
 

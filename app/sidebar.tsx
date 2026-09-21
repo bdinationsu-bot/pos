@@ -15,6 +15,7 @@ type Menu = {
 const menus: Menu[] = [
   { href: '/', labelKey: 'menu.dashboard', icon: '🏠', roles: ['owner', 'manager', 'cashier', 'technician', 'viewer'] },
   { href: '/pos', labelKey: 'menu.pos', icon: '🛒', roles: ['owner', 'manager', 'cashier'] },
+  { href: '/sales', labelKey: 'menu.sales', icon: '🧾', roles: ['owner', 'manager', 'cashier'] },
   { href: '/inventory', labelKey: 'menu.inventory', icon: '📱', roles: ['owner', 'manager', 'cashier', 'viewer'] },
   { href: '/accessories', labelKey: 'menu.accessories', icon: '📦', roles: ['owner', 'manager', 'cashier'] },
   { href: '/tradein/new', labelKey: 'menu.tradein', icon: '🔄', roles: ['owner', 'manager', 'cashier'] },
@@ -71,8 +72,22 @@ export default function Sidebar() {
       </div>
 
       <div className="mb-4 bg-green-800 rounded-lg p-1 flex gap-1">
-        <button onClick={() => setLang('mm')} className={`flex-1 py-1.5 rounded text-xs font-medium ${lang === 'mm' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'}`}>🇲🇲 မြန်မာ</button>
-        <button onClick={() => setLang('en')} className={`flex-1 py-1.5 rounded text-xs font-medium ${lang === 'en' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'}`}>🇬🇧 English</button>
+        <button
+          onClick={() => setLang('mm')}
+          className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
+            lang === 'mm' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'
+          }`}
+        >
+          🇲🇲 မြန်မာ
+        </button>
+        <button
+          onClick={() => setLang('en')}
+          className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
+            lang === 'en' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'
+          }`}
+        >
+          🇬🇧 English
+        </button>
       </div>
 
       <nav className="space-y-1 flex-1 overflow-y-auto">
@@ -94,7 +109,7 @@ export default function Sidebar() {
       </nav>
 
       <div className="border-t border-green-600 pt-3 mt-3">
-        <div className="text-xs text-green-200 px-2 mb-1">{user?.email}</div>
+        <div className="text-xs text-green-200 px-2 mb-1 truncate">{user?.email}</div>
         <div className="text-xs text-white font-medium px-2 mb-2 capitalize">{t('role.' + role)}</div>
         <button
           onClick={logout}
