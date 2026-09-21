@@ -246,8 +246,8 @@ export default function AccountingPage() {
       styles: { fontSize: 10, cellPadding: 3 },
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold' },
       columnStyles: { 1: { halign: 'right', cellWidth: 45 } },
-      didParseCell: (data) => {
-        if (data.row.raw[0] === 'GROSS PROFIT (GP)' || data.row.raw[0] === 'NET PROFIT (NP)') {
+      didParseCell: (data: any) => {
+        if ((data.row.raw as any[])[0] === 'GROSS PROFIT (GP)' || (data.row.raw as any[])[0] === 'NET PROFIT (NP)') {
           data.cell.styles.fontStyle = 'bold'
           data.cell.styles.fillColor = [220, 252, 231]
           data.cell.styles.textColor = [22, 101, 52]

@@ -234,7 +234,7 @@ export default function POSPage() {
                         )}
                         {c.grade && <span className="bg-white px-2 py-0.5 rounded border">Grade <strong className="text-green-700">{c.grade}</strong></span>}
                         {c.region && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{c.region}</span>}
-                        {c.warranty_days > 0 && <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">🛡️ {c.warranty_days} ရက်</span>}
+                        {(c.warranty_days || 0) > 0 && <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">🛡️ {c.warranty_days} ရက်</span>}
                       </div>
                     )}
 
