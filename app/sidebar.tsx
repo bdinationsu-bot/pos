@@ -13,16 +13,16 @@ type Menu = {
 }
 
 const menus: Menu[] = [
-  { href: '/', labelKey: 'menu.dashboard', icon: '🏠', roles: ['owner', 'manager', 'cashier', 'technician', 'viewer'] },
+  { href: '/', labelKey: 'menu.dashboard', icon: '🏠', roles: ['owner', 'manager', 'cashier', 'accountant', 'customer_service'] },
   { href: '/pos', labelKey: 'menu.pos', icon: '🛒', roles: ['owner', 'manager', 'cashier'] },
-  { href: '/sales', labelKey: 'menu.sales', icon: '🧾', roles: ['owner', 'manager', 'cashier'] },
-  { href: '/inventory', labelKey: 'menu.inventory', icon: '📱', roles: ['owner', 'manager', 'cashier', 'viewer'] },
+  { href: '/sales', labelKey: 'menu.sales', icon: '🧾', roles: ['owner', 'manager', 'cashier', 'accountant'] },
+  { href: '/inventory', labelKey: 'menu.inventory', icon: '📱', roles: ['owner', 'manager', 'cashier', 'customer_service'] },
   { href: '/accessories', labelKey: 'menu.accessories', icon: '📦', roles: ['owner', 'manager', 'cashier'] },
   { href: '/tradein/new', labelKey: 'menu.tradein', icon: '🔄', roles: ['owner', 'manager', 'cashier'] },
-  { href: '/repairs', labelKey: 'menu.repairs', icon: '🔧', roles: ['owner', 'manager', 'technician'] },
-  { href: '/suppliers', labelKey: 'menu.suppliers', icon: '🏭', roles: ['owner', 'manager'] },
-  { href: '/purchases', labelKey: 'menu.purchases', icon: '🛍️', roles: ['owner', 'manager'] },
-  { href: '/accounting', labelKey: 'menu.accounting', icon: '📊', roles: ['owner', 'manager'] },
+  { href: '/repairs', labelKey: 'menu.repairs', icon: '🔧', roles: ['owner', 'manager', 'customer_service'] },
+  { href: '/suppliers', labelKey: 'menu.suppliers', icon: '🏭', roles: ['owner', 'manager', 'accountant'] },
+  { href: '/purchases', labelKey: 'menu.purchases', icon: '🛍️', roles: ['owner', 'manager', 'accountant'] },
+  { href: '/accounting', labelKey: 'menu.accounting', icon: '📊', roles: ['owner', 'manager', 'accountant'] },
   { href: '/staff', labelKey: 'menu.staff', icon: '👥', roles: ['owner', 'manager'] },
   { href: '/users', labelKey: 'menu.users', icon: '👤', roles: ['owner'] },
   { href: '/settings', labelKey: 'menu.settings', icon: '⚙️', roles: ['owner', 'manager'] },
@@ -35,7 +35,7 @@ export default function Sidebar() {
   const [logo, setLogo] = useState<string | null>(null)
   const [name, setName] = useState('POS')
   const [user, setUser] = useState<any>(null)
-  const [role, setRole] = useState<string>('viewer')
+  const [role, setRole] = useState<string>('')
 
   useEffect(() => {
     (async () => {
@@ -72,20 +72,10 @@ export default function Sidebar() {
       </div>
 
       <div className="mb-4 bg-green-800 rounded-lg p-1 flex gap-1">
-        <button
-          onClick={() => setLang('mm')}
-          className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
-            lang === 'mm' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'
-          }`}
-        >
+        <button onClick={() => setLang('mm')} className={`flex-1 py-1.5 rounded text-xs font-medium transition ${lang === 'mm' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'}`}>
           🇲🇲 မြန်မာ
         </button>
-        <button
-          onClick={() => setLang('en')}
-          className={`flex-1 py-1.5 rounded text-xs font-medium transition ${
-            lang === 'en' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'
-          }`}
-        >
+        <button onClick={() => setLang('en')} className={`flex-1 py-1.5 rounded text-xs font-medium transition ${lang === 'en' ? 'bg-white text-green-700' : 'text-green-200 hover:bg-green-700'}`}>
           🇬🇧 English
         </button>
       </div>
@@ -94,13 +84,8 @@ export default function Sidebar() {
         {visibleMenus.map(m => {
           const active = m.href === '/' ? path === '/' : (path === m.href || path.startsWith('/' + m.href.split('/')[1]))
           return (
-            <Link
-              key={m.href}
-              href={m.href}
-              className={`flex items-center gap-3 px-3 py-2 rounded transition text-sm ${
-                active ? 'bg-white text-green-700 font-semibold' : 'hover:bg-green-600'
-              }`}
-            >
+            <Link key={m.href} href={m.href}
+              className={`flex items-center gap-3 px-3 py-2 rounded transition text-sm ${active ? 'bg-white text-green-700 font-semibold' : 'hover:bg-green-600'}`}>
               <span>{m.icon}</span>
               <span>{t(m.labelKey)}</span>
             </Link>
@@ -110,11 +95,8 @@ export default function Sidebar() {
 
       <div className="border-t border-green-600 pt-3 mt-3">
         <div className="text-xs text-green-200 px-2 mb-1 truncate">{user?.email}</div>
-        <div className="text-xs text-white font-medium px-2 mb-2 capitalize">{t('role.' + role)}</div>
-        <button
-          onClick={logout}
-          className="w-full bg-green-800 hover:bg-green-900 text-white px-3 py-2 rounded text-sm"
-        >
+        <div className="text-xs text-white font-medium px-2 mb-2">{t('role.' + role)}</div>
+        <button onClick={logout} className="w-full bg-green-800 hover:bg-green-900 text-white px-3 py-2 rounded text-sm">
           🚪 {t('auth.logout')}
         </button>
       </div>

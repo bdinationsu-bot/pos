@@ -32,8 +32,6 @@ const translations: Record<string, { en: string; mm: string }> = {
   'common.optional': { en: 'optional', mm: '(မထည့်လည်းရ)' },
   'common.actions': { en: 'Actions', mm: 'လုပ်ဆောင်ချက်' },
   'common.print': { en: 'Print', mm: 'ပရင့်' },
-  'common.from': { en: 'From', mm: 'မှ' },
-  'common.to': { en: 'To', mm: 'ထိ' },
 
   'menu.pos': { en: 'POS', mm: 'အရောင်း' },
   'menu.sales': { en: 'Sales History', mm: 'အရောင်းမှတ်တမ်း' },
@@ -62,23 +60,9 @@ const translations: Record<string, { en: string; mm: string }> = {
   'pos.no_imei': { en: 'IMEI not found or already sold', mm: 'IMEI မတွေ့ပါ (သို့) ရောင်းပြီးသား' },
   'pos.already_in_cart': { en: 'Already in cart', mm: 'Cart ထဲ ထည့်ပြီးသား' },
 
-  'sales.title': { en: 'Sales History', mm: 'အရောင်းမှတ်တမ်း' },
-  'sales.invoice': { en: 'Invoice', mm: 'ငွေတောင်းခံလွှာ' },
-  'sales.refund': { en: 'Refund', mm: 'ပြန်အမ်း' },
-  'sales.refunded': { en: 'REFUNDED', mm: 'ပြန်အမ်းပြီး' },
-
   'inv.title': { en: 'Inventory', mm: 'လက်ကျန် ပစ္စည်း' },
   'inv.new_device': { en: '+ New Device', mm: '+ Device အသစ်' },
-  'inv.excel_export': { en: 'Excel Export', mm: 'Excel ထုတ်' },
-  'inv.excel_import': { en: 'Excel Import', mm: 'Excel သွင်း' },
-  'inv.template': { en: 'Template', mm: 'Template' },
-  'inv.search_placeholder': { en: 'Search IMEI / Model / Serial', mm: 'IMEI / Model / Serial ရှာ' },
-  'inv.battery': { en: 'Battery', mm: 'ဘက်ထရီ' },
-  'inv.grade': { en: 'Grade', mm: 'အဆင့်' },
-  'inv.cycle': { en: 'Cycle', mm: 'သံသရာ' },
-  'inv.barcode_print': { en: 'Barcode Print', mm: 'ဘားကုဒ် ပရင့်' },
-  'inv.batch_delete': { en: 'Delete', mm: 'ဖျက်' },
-  'inv.selected': { en: 'selected', mm: 'ရွေးထား' },
+  'inv.search_placeholder': { en: 'Search IMEI / Model', mm: 'IMEI / Model ရှာ' },
 
   'status.in_stock': { en: 'In Stock', mm: 'လက်ကျန်' },
   'status.sold': { en: 'Sold', mm: 'ရောင်းပြီး' },
@@ -147,11 +131,12 @@ const translations: Record<string, { en: string; mm: string }> = {
   'auth.signin_title': { en: 'Sign In', mm: 'ဝင်ရောက်ရန်' },
   'auth.role': { en: 'Role', mm: 'ရာထူး' },
 
+  // === Role အသစ် ===
   'role.owner': { en: 'Owner', mm: 'ပိုင်ရှင်' },
   'role.manager': { en: 'Manager', mm: 'မန်နေဂျာ' },
   'role.cashier': { en: 'Cashier', mm: 'ငွေကိုင်' },
-  'role.technician': { en: 'Technician', mm: 'နည်းပညာရှင်' },
-  'role.viewer': { en: 'Viewer', mm: 'ကြည့်ရှုသူ' }
+  'role.accountant': { en: 'Accountant', mm: 'စာရင်းကိုင်' },
+  'role.customer_service': { en: 'Customer Service', mm: 'ဝန်ဆောင်မှု' }
 }
 
 type Ctx = {

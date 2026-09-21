@@ -2,18 +2,21 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useRole } from '@/lib/useRole'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
 
 export default function SaleDetail() {
   const { id } = useParams()
   const router = useRouter()
+  const { canSeeProfit, canSeeCost } = useRole()
   const [sale, setSale] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
   const [customer, setCustomer] = useState<any>(null)
   const [shop, setShop] = useState<any>({})
   const [loading, setLoading] = useState(true)
+  const [deleting, setDeleting] = useState(false)
 
   useEffect(() => {
     (async () => {
@@ -46,10 +49,22 @@ export default function SaleDetail() {
     router.push('/sales')
   }
 
+  async function deleteSale() {
+    if (!confirm(`⚠️ ${sale.invoice_no} ကို ဖျက်မှာ သေချာလား?\n\n• Device status → in_stock ပြန်\n• Cashbook entry ဖျက်\n• Payment records ဖျက်\n• ပြန်ယူလို့ မရပါ`)) return
+    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။ DELETE ဖြစ်သွားရင် ပြန်မရနိုင်ပါ။')) return
+
+    setDeleting(true)
+    const { error } = await supabase.rpc('delete_sale', { p_sale_id: Number(id) })
+    setDeleting(false)
+
+    if (error) return alert('❌ Error: ' + error.message)
+    alert('✅ ဖျက်ပြီးပါပြီ')
+    router.push('/sales')
+  }
+
   function exportPDF() {
     const doc = new jsPDF()
 
-    // Green header
     doc.setFillColor(22, 163, 74)
     doc.rect(0, 0, 210, 35, 'F')
     doc.setTextColor(255, 255, 255)
@@ -68,7 +83,6 @@ export default function SaleDetail() {
     doc.setFont('helvetica', 'normal')
     doc.text(sale.invoice_no, 195, 26, { align: 'right' })
 
-    // Invoice info
     doc.setTextColor(0, 0, 0)
     let y = 50
 
@@ -97,7 +111,6 @@ export default function SaleDetail() {
 
     y += 35
 
-    // Items table
     autoTable(doc, {
       startY: y,
       head: [['#', 'Item', 'IMEI', 'Specs', 'Qty', 'Price', 'Amount']],
@@ -107,7 +120,6 @@ export default function SaleDetail() {
         if (it.grade) specs.push(`Grade ${it.grade}`)
         if (it.region) specs.push(it.region)
         if (it.warranty_days) specs.push(`Warranty ${it.warranty_days}d`)
-
         return [
           i + 1,
           it.name,
@@ -148,7 +160,6 @@ export default function SaleDetail() {
       y += 6
       doc.setTextColor(0, 0, 0)
     }
-
     if (Number(sale.tradein_amount) > 0) {
       doc.setTextColor(37, 99, 235)
       doc.text('Trade-in:', totalsX, y)
@@ -170,7 +181,6 @@ export default function SaleDetail() {
 
     y += 12
 
-    // Payment
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
@@ -182,7 +192,6 @@ export default function SaleDetail() {
       y += 5
     })
 
-    // Warranty Terms
     if (items.some(it => it.item_type === 'device')) {
       y += 8
       doc.setFillColor(240, 253, 244)
@@ -199,7 +208,6 @@ export default function SaleDetail() {
       y += 28
     }
 
-    // Signature
     y += 10
     doc.setDrawColor(22, 163, 74)
     doc.setLineWidth(0.5)
@@ -210,7 +218,6 @@ export default function SaleDetail() {
     doc.text('Customer Signature: ______________________', 15, y)
     doc.text('Authorized Signature: ______________________', 110, y)
 
-    // Thank You (English only)
     y += 15
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
@@ -290,48 +297,67 @@ export default function SaleDetail() {
       <div className="bg-white rounded shadow p-4 mb-4">
         <h2 className="font-bold mb-2 text-green-700">📱 Items ({items.length})</h2>
         <div className="space-y-3">
-          {items.map((it, i) => (
-            <div key={it.id} className="border rounded-lg p-3 bg-green-50">
-              <div className="flex justify-between items-start">
-                <div className="flex-1">
-                  <div className="flex items-center gap-2">
-                    <span className="text-xs text-gray-500">#{i + 1}</span>
-                    <span className="font-bold text-green-800">{it.name}</span>
+          {items.map((it, i) => {
+            const itemProfit = (Number(it.price) - Number(it.cost)) * it.qty
+            return (
+              <div key={it.id} className="border rounded-lg p-3 bg-green-50">
+                <div className="flex justify-between items-start">
+                  <div className="flex-1">
+                    <div className="flex items-center gap-2">
+                      <span className="text-xs text-gray-500">#{i + 1}</span>
+                      <span className="font-bold text-green-800">{it.name}</span>
+                    </div>
+                    {it.imei && (
+                      <div className="text-xs font-mono text-gray-600 mt-1">IMEI: {it.imei}</div>
+                    )}
+                    <div className="flex gap-2 mt-2 flex-wrap text-xs">
+                      {it.battery_health != null && (
+                        <span className="bg-white px-2 py-1 rounded border">
+                          🔋 Battery: <span className={batteryColor(it.battery_health)}>{it.battery_health}%</span>
+                        </span>
+                      )}
+                      {it.grade && (
+                        <span className="bg-white px-2 py-1 rounded border">
+                          Grade: <strong className="text-green-700">{it.grade}</strong>
+                        </span>
+                      )}
+                      {it.region && (
+                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
+                          📡 {it.region}
+                        </span>
+                      )}
+                      {it.warranty_days > 0 && (
+                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
+                          🛡️ အာမခံ {it.warranty_days} ရက်
+                        </span>
+                      )}
+                    </div>
+
+                    {/* Cost / Profit — Role-based */}
+                    {canSeeCost && (
+                      <div className="flex gap-2 mt-2 flex-wrap text-xs">
+                        <span className="bg-orange-50 px-2 py-1 rounded border border-orange-200">
+                          Cost: <strong className="text-orange-700">{Number(it.cost).toLocaleString()}</strong>
+                        </span>
+                        {canSeeProfit && (
+                          <span className={`px-2 py-1 rounded border ${
+                            itemProfit >= 0 ? 'bg-green-100 border-green-300 text-green-700' : 'bg-red-100 border-red-300 text-red-700'
+                          }`}>
+                            💰 Profit: <strong>{itemProfit.toLocaleString()}</strong>
+                          </span>
+                        )}
+                      </div>
+                    )}
                   </div>
-                  {it.imei && (
-                    <div className="text-xs font-mono text-gray-600 mt-1">IMEI: {it.imei}</div>
-                  )}
-                  <div className="flex gap-2 mt-2 flex-wrap text-xs">
-                    {it.battery_health != null && (
-                      <span className="bg-white px-2 py-1 rounded border">
-                        🔋 Battery: <span className={batteryColor(it.battery_health)}>{it.battery_health}%</span>
-                      </span>
-                    )}
-                    {it.grade && (
-                      <span className="bg-white px-2 py-1 rounded border">
-                        Grade: <strong className="text-green-700">{it.grade}</strong>
-                      </span>
-                    )}
-                    {it.region && (
-                      <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                        📡 {it.region}
-                      </span>
-                    )}
-                    {it.warranty_days > 0 && (
-                      <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                        🛡️ အာမခံ {it.warranty_days} ရက်
-                      </span>
-                    )}
+                  <div className="text-right ml-4">
+                    <div className="text-xs text-gray-500">Qty: {it.qty}</div>
+                    <div className="font-medium">{Number(it.price).toLocaleString()}</div>
+                    <div className="font-bold text-green-700">{(Number(it.price) * it.qty).toLocaleString()} Ks</div>
                   </div>
-                </div>
-                <div className="text-right ml-4">
-                  <div className="text-xs text-gray-500">Qty: {it.qty}</div>
-                  <div className="font-medium">{Number(it.price).toLocaleString()}</div>
-                  <div className="font-bold text-green-700">{(Number(it.price) * it.qty).toLocaleString()} Ks</div>
                 </div>
               </div>
-            </div>
-          ))}
+            )
+          })}
         </div>
       </div>
 
@@ -344,9 +370,13 @@ export default function SaleDetail() {
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
             <span>Total</span><span className="text-green-700">{Number(sale.total).toLocaleString()} Ks</span>
           </div>
-          <div className="flex justify-between text-sm border-t pt-2 mt-2 text-green-700 font-medium">
-            <span>💰 အမြတ်</span><span>{profit.toLocaleString()} Ks</span>
-          </div>
+
+          {/* Profit — Only Owner + Accountant */}
+          {canSeeProfit && (
+            <div className="flex justify-between text-sm border-t pt-2 mt-2 text-green-700 font-medium">
+              <span>💰 အမြတ်</span><span>{profit.toLocaleString()} Ks</span>
+            </div>
+          )}
         </div>
         <div className="mt-3 pt-3 border-t">
           <div className="text-sm font-medium mb-2">💳 Payment</div>
@@ -360,9 +390,15 @@ export default function SaleDetail() {
       </div>
 
       {!isRefunded && (
-        <button onClick={refundSale} className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-medium">
-          ↩️ Refund
-        </button>
+        <div className="flex gap-2">
+          <button onClick={refundSale} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded font-medium">
+            ↩️ Refund
+          </button>
+          <button onClick={deleteSale} disabled={deleting}
+            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-medium disabled:opacity-50">
+            {deleting ? 'ဖျက်နေတယ်...' : '🗑️ ဖျက်'}
+          </button>
+        </div>
       )}
     </div>
   )

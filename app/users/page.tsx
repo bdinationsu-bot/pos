@@ -3,7 +3,7 @@ import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/lib/i18n'
 
-const ROLES = ['owner', 'manager', 'cashier', 'technician', 'viewer']
+const ROLES = ['owner', 'manager', 'cashier', 'accountant', 'customer_service']
 
 export default function UsersPage() {
   const { t } = useLang()
@@ -33,27 +33,17 @@ export default function UsersPage() {
     if (!invite.password || invite.password.length < 6) return alert('Password အနည်းဆုံး ၆ လုံး')
 
     setInviting(true)
-
     const { data, error } = await supabase.auth.signUp({
       email: invite.email,
       password: invite.password,
-      options: {
-        data: {
-          full_name: invite.full_name,
-          role: invite.role
-        }
-      }
+      options: { data: { full_name: invite.full_name, role: invite.role } }
     })
 
     if (error) {
       setInviting(false)
       let msg = error.message
-      if (msg.includes('already registered') || msg.includes('already exists')) {
-        msg = 'ဒီ Email က ရှိပြီးသား'
-      }
-      if (msg.includes('confirmation')) {
-        msg = 'Email confirmation ကို OFF လုပ်ပါ (Supabase Settings)'
-      }
+      if (msg.includes('already registered')) msg = 'ဒီ Email က ရှိပြီးသား'
+      if (msg.includes('confirmation')) msg = 'Supabase → Auth → Providers → Confirm email OFF လုပ်ပါ'
       return alert('❌ ' + msg)
     }
 
@@ -66,17 +56,16 @@ export default function UsersPage() {
         role: invite.role as any,
         active: true
       })
-      
       if (profErr) {
         setInviting(false)
-        return alert('⚠️ Auth user ဆောက်ပြီး၊ ဒါပေမယ့် profile မထည့်နိုင်ဘူး: ' + profErr.message)
+        return alert('⚠️ Profile မထည့်နိုင်ဘူး: ' + profErr.message)
       }
     }
 
     setInviting(false)
     setInvite({ email: '', full_name: '', role: 'cashier', password: '', phone: '' })
     setShowInvite(false)
-    alert('✅ User ဆောက်ပြီးပါပြီ\n\n' + invite.email + ' / ' + invite.password)
+    alert('✅ User ဆောက်ပြီးပါပြီ\n' + invite.email + ' / ' + invite.password)
     load()
   }
 
@@ -93,20 +82,11 @@ export default function UsersPage() {
     load()
   }
 
-  async function resetPassword(email: string) {
-    if (!confirm(`Reset password for ${email}?`)) return
-    const { error } = await supabase.auth.resetPasswordForEmail(email, {
-      redirectTo: `${window.location.origin}/login`
-    })
-    if (error) return alert(error.message)
-    alert('📧 Password reset email ပို့ပြီးပါပြီ')
-  }
-
   async function deleteUser(id: string, email: string) {
     if (myRole !== 'owner') return alert('Owner ပဲ ဖျက်လို့ ရပါတယ်')
     if (!confirm(`${email} ကို ဖျက်မှာ သေချာလား?`)) return
     await supabase.from('profiles').delete().eq('id', id)
-    alert('⚠️ Profile ဖျက်ပြီး — Auth user ကို Supabase → Authentication → Users မှာ ဆက်ဖျက်ပါ')
+    alert('⚠️ Profile ဖျက်ပြီး — Supabase → Authentication → Users မှာ ဆက်ဖျက်ပါ')
     load()
   }
 
@@ -114,8 +94,8 @@ export default function UsersPage() {
     owner: 'bg-purple-100 text-purple-800',
     manager: 'bg-blue-100 text-blue-800',
     cashier: 'bg-green-100 text-green-800',
-    technician: 'bg-orange-100 text-orange-800',
-    viewer: 'bg-gray-100 text-gray-700'
+    accountant: 'bg-yellow-100 text-yellow-800',
+    customer_service: 'bg-pink-100 text-pink-800'
   }
 
   return (
@@ -123,9 +103,7 @@ export default function UsersPage() {
       <div className="flex justify-between items-center mb-4">
         <div>
           <h1 className="text-2xl font-bold text-green-800">Users</h1>
-          <p className="text-xs text-gray-500 mt-1">
-            Role: <strong className="text-green-700 capitalize">{myRole || '...'}</strong>
-          </p>
+          <p className="text-xs text-gray-500 mt-1">Role: <strong className="text-green-700">{myRole}</strong></p>
         </div>
         {myRole === 'owner' && (
           <button onClick={() => setShowInvite(!showInvite)} className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium">
@@ -136,40 +114,40 @@ export default function UsersPage() {
 
       {myRole !== 'owner' && (
         <div className="bg-yellow-50 border-2 border-yellow-400 text-yellow-800 p-4 rounded mb-4 text-sm">
-          ⚠️ User ထည့်ခြင်း / ပြင်ခြင်း ကို <strong>Owner</strong> ပဲ လုပ်နိုင်ပါတယ်
+          ⚠️ Owner ပဲ User ထည့်/ပြင် လုပ်နိုင်ပါတယ်
         </div>
       )}
 
       {showInvite && myRole === 'owner' && (
         <div className="bg-white rounded shadow p-4 mb-4">
-          <h2 className="font-bold mb-3 text-green-700">User အသစ် ဆောက်</h2>
+          <h2 className="font-bold mb-3 text-green-700">User အသစ်</h2>
           <div className="grid grid-cols-2 gap-3 mb-3">
             <div>
               <label className="block text-sm font-medium mb-1">Email *</label>
               <input type="email" value={invite.email} onChange={e => setInvite({ ...invite, email: e.target.value })}
-                placeholder="user@example.com" className="border p-2 rounded w-full" />
+                className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">နာမည် *</label>
               <input value={invite.full_name} onChange={e => setInvite({ ...invite, full_name: e.target.value })}
-                placeholder="Aung Aung" className="border p-2 rounded w-full" />
+                className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">ဖုန်း</label>
               <input value={invite.phone} onChange={e => setInvite({ ...invite, phone: e.target.value })}
-                placeholder="09xxxxxxxxx" className="border p-2 rounded w-full" />
+                className="border p-2 rounded w-full" />
             </div>
             <div>
               <label className="block text-sm font-medium mb-1">Password * (min 6)</label>
               <input type="password" value={invite.password} onChange={e => setInvite({ ...invite, password: e.target.value })}
-                placeholder="••••••" className="border p-2 rounded w-full" />
+                className="border p-2 rounded w-full" />
             </div>
             <div className="col-span-2">
               <label className="block text-sm font-medium mb-1">Role</label>
               <div className="grid grid-cols-5 gap-2">
                 {ROLES.map(r => (
                   <button key={r} type="button" onClick={() => setInvite({ ...invite, role: r })}
-                    className={`py-2 rounded border-2 font-medium capitalize text-sm transition ${
+                    className={`py-2 rounded border-2 font-medium text-xs transition ${
                       invite.role === r ? 'bg-green-600 text-white border-green-600' : 'bg-white border-gray-300 text-gray-700 hover:border-green-400'
                     }`}>
                     {t('role.' + r)}
@@ -180,7 +158,7 @@ export default function UsersPage() {
           </div>
           <div className="flex gap-2">
             <button onClick={createUser} disabled={inviting} className="bg-green-600 hover:bg-green-700 text-white px-6 py-2 rounded font-medium disabled:opacity-50">
-              {inviting ? 'ဆောက်နေတယ်...' : '✅ User ဆောက်'}
+              {inviting ? 'ဆောက်နေတယ်...' : '✅ ဆောက်'}
             </button>
             <button onClick={() => setShowInvite(false)} className="bg-gray-200 px-6 py-2 rounded font-medium">ပယ်ဖျက်</button>
           </div>
@@ -214,7 +192,9 @@ export default function UsersPage() {
                         {ROLES.map(r => <option key={r} value={r}>{t('role.' + r)}</option>)}
                       </select>
                     ) : (
-                      <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[u.role]}`}>{t('role.' + u.role)}</span>
+                      <span className={`px-2 py-1 rounded text-xs font-medium ${roleColors[u.role]}`}>
+                        {t('role.' + u.role)}
+                      </span>
                     )}
                   </td>
                   <td className="p-3 text-center">
@@ -231,10 +211,7 @@ export default function UsersPage() {
                   </td>
                   <td className="p-3 text-right">
                     {myRole === 'owner' && (
-                      <div className="flex gap-2 justify-end">
-                        <button onClick={() => resetPassword(u.email)} className="text-xs text-blue-600 hover:underline">Reset PW</button>
-                        <button onClick={() => deleteUser(u.id, u.email)} className="text-xs text-red-600 hover:underline">ဖျက်</button>
-                      </div>
+                      <button onClick={() => deleteUser(u.id, u.email)} className="text-xs text-red-600 hover:underline">ဖျက်</button>
                     )}
                   </td>
                 </tr>
@@ -244,11 +221,15 @@ export default function UsersPage() {
         )}
       </div>
 
-      <div className="mt-4 p-4 bg-yellow-50 border border-yellow-200 rounded text-sm">
-        <strong className="text-yellow-800">⚠️ Supabase Settings လိုအပ်:</strong>
-        <div className="mt-2 text-gray-700">
-          Authentication → Providers → Email → <strong>"Confirm email" = OFF</strong>
-        </div>
+      <div className="mt-4 p-4 bg-blue-50 border border-blue-200 rounded text-sm">
+        <strong className="text-blue-800">📌 Role ခွင့်ပြုချက်များ:</strong>
+        <ul className="ml-4 mt-2 space-y-1 text-gray-700 text-xs">
+          <li><strong>Owner</strong> — အားလုံး + Users + Settings + Profit</li>
+          <li><strong>Manager</strong> — POS, Inventory, Purchases, Accounting (Profit မမြင်)</li>
+          <li><strong>Cashier</strong> — POS, Inventory, Trade-in (Profit မမြင်)</li>
+          <li><strong>Accountant</strong> — Sales, Accounting, Purchases + <strong>Profit မြင်</strong></li>
+          <li><strong>Customer Service</strong> — Inventory, Repair Desk (Profit မမြင်)</li>
+        </ul>
       </div>
     </div>
   )
