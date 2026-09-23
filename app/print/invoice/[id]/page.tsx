@@ -40,7 +40,7 @@ export default function InvoicePrint() {
   const greenDark = '#15803d'
 
   return (
-    <div style={{ background: '#fff', minHeight: '100vh', padding: '10mm', fontFamily: '-apple-system, "Padauk", "Myanmar Text", Arial, sans-serif', color: '#111' }}>
+    <div style={{ background: '#fff', minHeight: '100vh', padding: '10mm', fontFamily: '-apple-system, "Padauk", Arial, sans-serif', color: '#111' }}>
       <style>{`
         @media print {
           @page { size: A4; margin: 10mm; }
@@ -50,12 +50,13 @@ export default function InvoicePrint() {
         .no-print {
           position: fixed; top: 10px; right: 10px; z-index: 1000;
           background: ${green}; color: white; border: none; padding: 12px 20px;
-          border-radius: 8px; cursor: pointer; font-weight: bold; font-size: 14px;
+          border-radius: 8px; cursor: pointer; font-weight: bold;
         }
       `}</style>
 
       <button className="no-print" onClick={() => window.print()}>🖨️ Print</button>
 
+      {/* HEADER */}
       <div style={{ background: green, color: 'white', padding: '20px 25px', borderRadius: 10, display: 'flex', alignItems: 'center', justifyContent: 'space-between', marginBottom: 25 }}>
         <div style={{ display: 'flex', alignItems: 'center', gap: 15 }}>
           {shop.logo_url ? (
@@ -64,65 +65,61 @@ export default function InvoicePrint() {
             <div style={{ width: 70, height: 70, borderRadius: 10, background: 'white', color: green, display: 'flex', alignItems: 'center', justifyContent: 'center', fontSize: 32, fontWeight: 'bold' }}>P</div>
           )}
           <div>
-            <div style={{ fontSize: 24, fontWeight: 'bold', letterSpacing: 0.5 }}>{shop.shop_name || 'POS'}</div>
-            {shop.shop_address && <div style={{ fontSize: 12, opacity: 0.95, marginTop: 2 }}>{shop.shop_address}</div>}
-            {shop.shop_phone && <div style={{ fontSize: 12, opacity: 0.95, marginTop: 2 }}>📞 {shop.shop_phone}</div>}
+            <div style={{ fontSize: 24, fontWeight: 'bold' }}>{shop.shop_name || 'POS'}</div>
+            {shop.shop_address && <div style={{ fontSize: 12, opacity: 0.95 }}>{shop.shop_address}</div>}
+            {shop.shop_phone && <div style={{ fontSize: 12, opacity: 0.95 }}>📞 {shop.shop_phone}</div>}
           </div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ fontSize: 32, fontWeight: 'bold', letterSpacing: 1 }}>INVOICE</div>
-          <div style={{ fontSize: 11, opacity: 0.9, marginTop: 4 }}>အရောင်းငွေတောင်းခံလွှာ</div>
+          <div style={{ fontSize: 32, fontWeight: 'bold' }}>INVOICE</div>
         </div>
       </div>
 
+      {/* BILL TO */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
         <div style={{ background: greenLight, borderLeft: `4px solid ${green}`, padding: '12px 16px', borderRadius: 6 }}>
-          <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>ဖောက်သည် / Bill To</div>
+          <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', marginBottom: 6 }}>BILL TO</div>
           <div style={{ fontSize: 15, fontWeight: 'bold' }}>{customer?.name || sale.customer_name || 'Walk-in Customer'}</div>
-          {customer?.phone && <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>📞 {customer.phone}</div>}
-          {customer?.address && <div style={{ fontSize: 12, color: '#555', marginTop: 2 }}>{customer.address}</div>}
+          {customer?.phone && <div style={{ fontSize: 12, color: '#555' }}>📞 {customer.phone}</div>}
         </div>
         <div style={{ background: greenLight, borderLeft: `4px solid ${green}`, padding: '12px 16px', borderRadius: 6 }}>
-          <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 6 }}>ငွေတောင်းခံလွှာ အချက်အလက်</div>
+          <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', marginBottom: 6 }}>INVOICE DETAILS</div>
           <table style={{ fontSize: 12, width: '100%' }}>
             <tbody>
-              <tr><td style={{ color: '#666', paddingBottom: 3 }}>Invoice No:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{sale.invoice_no}</td></tr>
-              <tr><td style={{ color: '#666', paddingBottom: 3 }}>Date:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{new Date(sale.created_at).toLocaleDateString()}</td></tr>
-              <tr><td style={{ color: '#666', paddingBottom: 3 }}>Time:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{new Date(sale.created_at).toLocaleTimeString()}</td></tr>
+              <tr><td style={{ color: '#666' }}>Invoice:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{sale.invoice_no}</td></tr>
+              <tr><td style={{ color: '#666' }}>Date:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{new Date(sale.created_at).toLocaleDateString()}</td></tr>
               {sale.staff?.name && (<tr><td style={{ color: '#666' }}>Staff:</td><td style={{ fontWeight: 'bold', textAlign: 'right' }}>{sale.staff.name}</td></tr>)}
             </tbody>
           </table>
         </div>
       </div>
 
-      {/* Items Table with Device Specs */}
+      {/* ITEMS */}
       <table style={{ width: '100%', borderCollapse: 'collapse', marginBottom: 20 }}>
         <thead>
           <tr style={{ background: green, color: 'white' }}>
-            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, fontWeight: 'bold' }}>#</th>
-            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, fontWeight: 'bold' }}>ပစ္စည်း / Item</th>
-            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, fontWeight: 'bold' }}>IMEI</th>
-            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, fontWeight: 'bold' }}>Specs</th>
-            <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, fontWeight: 'bold' }}>Qty</th>
-            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, fontWeight: 'bold' }}>Price</th>
-            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, fontWeight: 'bold' }}>Amount</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12, width: 30 }}>#</th>
+            <th style={{ padding: '10px 12px', textAlign: 'left', fontSize: 12 }}>Item</th>
+            <th style={{ padding: '10px 12px', textAlign: 'center', fontSize: 12, width: 50 }}>Qty</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, width: 100 }}>Price</th>
+            <th style={{ padding: '10px 12px', textAlign: 'right', fontSize: 12, width: 110 }}>Amount</th>
           </tr>
         </thead>
         <tbody>
           {items.map((it, i) => {
             const specs: string[] = []
-            if (it.battery_health) specs.push(`🔋 ${it.battery_health}%`)
-            if (it.grade) specs.push(`Grade ${it.grade}`)
+            if (it.battery_health) specs.push(`Battery ${it.battery_health}%`)
+            if (it.storage) specs.push(it.storage)
+            if (it.color) specs.push(it.color)
             if (it.region) specs.push(it.region)
-            if (it.warranty_days) specs.push(`🛡️ ${it.warranty_days}d`)
-
+            if (it.warranty_days) specs.push(`Warranty ${it.warranty_days} days`)
             return (
               <tr key={it.id} style={{ borderBottom: '1px solid #e5e7eb', background: i % 2 === 0 ? '#fff' : greenLight }}>
                 <td style={{ padding: '10px 12px', fontSize: 12, verticalAlign: 'top' }}>{i + 1}</td>
-                <td style={{ padding: '10px 12px', fontSize: 12, fontWeight: 500, verticalAlign: 'top' }}>{it.name}</td>
-                <td style={{ padding: '10px 12px', fontSize: 10, fontFamily: 'monospace', color: '#555', verticalAlign: 'top' }}>{it.imei || '-'}</td>
-                <td style={{ padding: '10px 12px', fontSize: 10, color: '#444', verticalAlign: 'top' }}>
-                  {specs.length ? specs.join(' • ') : '-'}
+                <td style={{ padding: '10px 12px', verticalAlign: 'top' }}>
+                  <div style={{ fontSize: 13, fontWeight: 'bold' }}>{it.name}</div>
+                  {it.imei && <div style={{ fontSize: 10, fontFamily: 'monospace', color: '#555', marginTop: 2 }}>IMEI: {it.imei}</div>}
+                  {specs.length > 0 && <div style={{ fontSize: 10, color: '#666', marginTop: 2 }}>• {specs.join(' • ')}</div>}
                 </td>
                 <td style={{ padding: '10px 12px', fontSize: 12, textAlign: 'center', verticalAlign: 'top' }}>{it.qty}</td>
                 <td style={{ padding: '10px 12px', fontSize: 12, textAlign: 'right', verticalAlign: 'top' }}>{Number(it.price).toLocaleString()}</td>
@@ -135,26 +132,22 @@ export default function InvoicePrint() {
         </tbody>
       </table>
 
-      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 25 }}>
-        <div>
-          <div style={{ background: greenLight, border: `1px solid ${green}`, borderRadius: 6, padding: '12px 16px' }}>
-            <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', textTransform: 'uppercase', letterSpacing: 1, marginBottom: 8 }}>ငွေပေးချေမှု / Payment</div>
-            {payments.length === 0 ? <div style={{ fontSize: 12, color: '#666' }}>-</div> : (
-              payments.map((p, i) => (
-                <div key={i} style={{ fontSize: 13, marginBottom: 4 }}>
-                  <div style={{ fontWeight: 'bold', color: greenDark }}>{p.method}</div>
-                  {p.ref_no && <div style={{ fontSize: 11, color: '#666' }}>Ref: {p.ref_no}</div>}
-                  <div style={{ fontSize: 13, fontWeight: 'bold', marginTop: 2 }}>{Number(p.amount).toLocaleString()} Ks</div>
-                </div>
-              ))
-            )}
-          </div>
+      {/* PAYMENT + TOTALS */}
+      <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
+        <div style={{ background: greenLight, border: `1px solid ${green}`, borderRadius: 6, padding: '12px 16px' }}>
+          <div style={{ fontSize: 11, color: greenDark, fontWeight: 'bold', marginBottom: 8 }}>PAYMENT</div>
+          {payments.map((p, i) => (
+            <div key={i} style={{ fontSize: 13, marginBottom: 4 }}>
+              <div style={{ fontWeight: 'bold', color: greenDark }}>{p.method}</div>
+              {p.ref_no && <div style={{ fontSize: 11, color: '#666' }}>Ref: {p.ref_no}</div>}
+              <div style={{ fontSize: 13, fontWeight: 'bold' }}>{Number(p.amount).toLocaleString()} Ks</div>
+            </div>
+          ))}
         </div>
-
         <div>
           <table style={{ width: '100%', fontSize: 13 }}>
             <tbody>
-              <tr><td style={{ padding: '6px 0', color: '#666' }}>Subtotal</td><td style={{ padding: '6px 0', textAlign: 'right', fontWeight: 500 }}>{Number(sale.subtotal).toLocaleString()} Ks</td></tr>
+              <tr><td style={{ padding: '6px 0', color: '#666' }}>Subtotal</td><td style={{ padding: '6px 0', textAlign: 'right' }}>{Number(sale.subtotal).toLocaleString()} Ks</td></tr>
               {Number(sale.discount) > 0 && (<tr><td style={{ padding: '6px 0', color: '#666' }}>Discount</td><td style={{ padding: '6px 0', textAlign: 'right', color: '#ea580c' }}>-{Number(sale.discount).toLocaleString()} Ks</td></tr>)}
               {Number(sale.tradein_amount) > 0 && (<tr><td style={{ padding: '6px 0', color: '#666' }}>Trade-in</td><td style={{ padding: '6px 0', textAlign: 'right', color: '#2563eb' }}>-{Number(sale.tradein_amount).toLocaleString()} Ks</td></tr>)}
               <tr style={{ borderTop: `2px solid ${green}` }}>
@@ -166,33 +159,46 @@ export default function InvoicePrint() {
         </div>
       </div>
 
-      {items.some(it => it.item_type === 'device') && (
-        <div style={{ background: greenLight, border: `1px dashed ${green}`, borderRadius: 6, padding: '12px 16px', marginBottom: 20, fontSize: 11, color: '#555' }}>
-          <div style={{ fontWeight: 'bold', color: greenDark, marginBottom: 4 }}>📋 အာမခံ အချက်အလက် / Warranty Terms</div>
-          <ul style={{ margin: 0, paddingLeft: 18, lineHeight: 1.6 }}>
-            <li>ရောင်းပြီး စက်များအတွက် အာမခံ ၇ ရက် (သို့) သတ်မှတ်ထားသည့် ကာလ</li>
-            <li>လူကြောင့်ဖြစ်သော ပျက်စီးမှု၊ ရေစိုခြင်း၊ ဖောက်ထွင်းခြင်း အာမခံ မပါဝင်ပါ</li>
-            <li>အာမခံ အသုံးပြုရန် ဒီ Invoice လက်မှတ် ယူလာပါ</li>
-          </ul>
+      {/* INVOICE NOTE (custom) */}
+      {shop.invoice_note && (
+        <div style={{ background: '#fefce8', border: '1px solid #fde047', borderRadius: 6, padding: '10px 14px', marginBottom: 16, fontSize: 11, color: '#713f12', whiteSpace: 'pre-wrap', lineHeight: 1.5 }}>
+          <strong>📌 Note:</strong>
+          <div style={{ marginTop: 4 }}>{shop.invoice_note}</div>
         </div>
       )}
 
-      <div style={{ borderTop: `2px solid ${green}`, paddingTop: 15, marginTop: 30, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, fontSize: 11, color: '#666' }}>
+      {/* WARRANTY POLICY (custom) */}
+      {items.some(it => it.item_type === 'device') && shop.warranty_policy && (
+        <div style={{ background: greenLight, border: `1px dashed ${green}`, borderRadius: 6, padding: '12px 16px', marginBottom: 20 }}>
+          <div style={{ fontWeight: 'bold', color: greenDark, marginBottom: 6, fontSize: 12 }}>🛡️ Warranty Policy / အာမခံ စည်းကမ်း</div>
+          <div style={{ fontSize: 11, color: '#555', whiteSpace: 'pre-wrap', lineHeight: 1.6 }}>
+            {shop.warranty_policy}
+          </div>
+        </div>
+      )}
+
+      {/* SIGNATURE */}
+      <div style={{ borderTop: `2px solid ${green}`, paddingTop: 15, marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, fontSize: 11, color: '#666' }}>
         <div>
-          <div style={{ marginBottom: 40, fontSize: 12 }}>ဖောက်သည် လက်မှတ်:</div>
+          <div style={{ marginBottom: 40, fontSize: 12 }}>Customer Signature:</div>
           <div style={{ borderTop: '1px solid #999', width: '70%', paddingTop: 4 }}>Customer Signature</div>
         </div>
         <div style={{ textAlign: 'right' }}>
-          <div style={{ marginBottom: 40, fontSize: 12 }}>ရောင်းချသူ လက်မှတ်:</div>
+          <div style={{ marginBottom: 40, fontSize: 12 }}>Authorized Signature:</div>
           <div style={{ borderTop: '1px solid #999', width: '70%', marginLeft: 'auto', paddingTop: 4 }}>Authorized Signature</div>
         </div>
       </div>
 
-      <div style={{ textAlign: 'center', marginTop: 25, fontSize: 12, color: greenDark, fontWeight: 'bold' }}>
-        🙏 ကျေးဇူးတင်ပါသည် / Thank You
-      </div>
-      <div style={{ textAlign: 'center', marginTop: 8, fontSize: 9, color: '#999' }}>
-        Generated on {new Date().toLocaleString()}
+      {/* CUSTOM FOOTER */}
+      <div style={{ textAlign: 'center', marginTop: 20 }}>
+        <div style={{ fontSize: 14, color: greenDark, fontWeight: 'bold' }}>
+          {shop.footer_text || '🙏 ကျေးဇူးတင်ပါသည် / Thank You'}
+        </div>
+        {shop.footer_text_2 && (
+          <div style={{ fontSize: 10, color: '#888', marginTop: 6 }}>
+            {shop.footer_text_2}
+          </div>
+        )}
       </div>
     </div>
   )

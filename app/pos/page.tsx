@@ -1,5 +1,5 @@
 'use client'
-import { useState, useEffect } from 'react'
+import { useState, useEffect, useRef } from 'react'
 import { supabase } from '@/lib/supabase'
 import { useLang } from '@/lib/i18n'
 import { PAYMENT_CATEGORIES, getMethodLabel, type PaymentCategory } from './payment-options'
@@ -23,6 +23,18 @@ type CartItem = {
   foc_reason?: string
 }
 
+type Suggest = {
+  id: number
+  imei: string
+  model: string
+  storage: string | null
+  color: string | null
+  sale_price: number
+  battery_health: number | null
+  grade: string | null
+  region: string | null
+}
+
 export default function POSPage() {
   const { t } = useLang()
   const [imei, setImei] = useState('')
@@ -44,6 +56,13 @@ export default function POSPage() {
   const [focModal, setFocModal] = useState<CartItem | null>(null)
   const [focReason, setFocReason] = useState('gift')
 
+  // IMEI Suggestions
+  const [suggestions, setSuggestions] = useState<Suggest[]>([])
+  const [showSuggest, setShowSuggest] = useState(false)
+  const [highlightIdx, setHighlightIdx] = useState(0)
+  const suggestRef = useRef<HTMLDivElement>(null)
+  const inputRef = useRef<HTMLInputElement>(null)
+
   useEffect(() => {
     (async () => {
       const { data } = await supabase.from('staff').select('*').eq('active', true).order('name')
@@ -53,40 +72,123 @@ export default function POSPage() {
     })()
   }, [])
 
+  // IMEI Suggest — debounced
+  useEffect(() => {
+    const q = imei.trim()
+    if (q.length < 2) {
+      setSuggestions([])
+      setShowSuggest(false)
+      return
+    }
+
+    const timer = setTimeout(async () => {
+      const { data } = await supabase
+        .from('devices')
+        .select('id, imei, model, storage, color, sale_price, battery_health, grade, region')
+        .eq('status', 'in_stock')
+        .ilike('imei', `%${q}%`)
+        .order('id', { ascending: false })
+        .limit(10)
+      setSuggestions(data ?? [])
+      setShowSuggest(true)
+      setHighlightIdx(0)
+    }, 200)
+
+    return () => clearTimeout(timer)
+  }, [imei])
+
+  // Click outside to close suggestions
+  useEffect(() => {
+    function handleClick(e: MouseEvent) {
+      if (suggestRef.current && !suggestRef.current.contains(e.target as Node) &&
+          inputRef.current && !inputRef.current.contains(e.target as Node)) {
+        setShowSuggest(false)
+      }
+    }
+    document.addEventListener('mousedown', handleClick)
+    return () => document.removeEventListener('mousedown', handleClick)
+  }, [])
+
+  function addDeviceToCart(d: any) {
+    if (cart.some(c => c.item_id === d.id && c.item_type === 'device')) {
+      alert('ဒီ device ကို cart ထဲ ထည့်ပြီးသား')
+      return
+    }
+    setCart([...cart, {
+      item_type: 'device',
+      item_id: d.id,
+      name: `${d.model} ${d.storage ?? ''} ${d.color ?? ''}`.trim(),
+      imei: d.imei ?? undefined,
+      qty: 1,
+      price: Number(d.sale_price),
+      cost: Number(d.cost_price || 0),
+      battery_health: d.battery_health ?? null,
+      grade: d.grade ?? null,
+      region: d.region ?? null,
+      storage: d.storage ?? null,
+      color: d.color ?? null,
+      warranty_days: d.warranty_days ?? 0,
+      is_foc: false
+    }])
+    setImei('')
+    setSuggestions([])
+    setShowSuggest(false)
+    inputRef.current?.focus()
+  }
+
   async function scanImei() {
     const q = imei.trim()
     if (!q) return
+
+    // If suggestion exists, pick first one
+    if (suggestions.length > 0 && showSuggest) {
+      const pick = suggestions[highlightIdx] || suggestions[0]
+      // Fetch full device
+      setLoading(true)
+      const { data } = await supabase.from('devices').select('*').eq('id', pick.id).maybeSingle()
+      setLoading(false)
+      if (data) addDeviceToCart(data)
+      return
+    }
+
+    // Exact search
     setLoading(true)
     const { data, error } = await supabase
       .from('devices').select('*').eq('imei', q).eq('status', 'in_stock').maybeSingle()
     setLoading(false)
+
     if (error) return alert('Error: ' + error.message)
     if (!data) return alert(t('pos.no_imei'))
-    if (cart.some(c => c.item_id === data.id && c.item_type === 'device')) {
-      return alert(t('pos.already_in_cart'))
+    addDeviceToCart(data)
+  }
+
+  function onKeyDown(e: React.KeyboardEvent<HTMLInputElement>) {
+    if (!showSuggest || suggestions.length === 0) {
+      if (e.key === 'Enter') scanImei()
+      return
     }
-    setCart([...cart, {
-      item_type: 'device',
-      item_id: data.id,
-      name: `${data.model} ${data.storage ?? ''} ${data.color ?? ''}`.trim(),
-      imei: data.imei ?? undefined,
-      qty: 1,
-      price: Number(data.sale_price),
-      cost: Number(data.cost_price),
-      battery_health: data.battery_health ?? null,
-      grade: data.grade ?? null,
-      region: data.region ?? null,
-      storage: data.storage ?? null,
-      color: data.color ?? null,
-      warranty_days: data.warranty_days ?? 0,
-      is_foc: false
-    }])
-    setImei('')
+    if (e.key === 'ArrowDown') {
+      e.preventDefault()
+      setHighlightIdx(i => Math.min(i + 1, suggestions.length - 1))
+    } else if (e.key === 'ArrowUp') {
+      e.preventDefault()
+      setHighlightIdx(i => Math.max(i - 1, 0))
+    } else if (e.key === 'Enter') {
+      e.preventDefault()
+      const pick = suggestions[highlightIdx]
+      if (pick) {
+        // Add full device data
+        supabase.from('devices').select('*').eq('id', pick.id).maybeSingle().then(({ data }) => {
+          if (data) addDeviceToCart(data)
+        })
+      }
+    } else if (e.key === 'Escape') {
+      setShowSuggest(false)
+    }
   }
 
   function addAccessory(a: any, isFoc: boolean, reason?: string) {
     const existingIdx = cart.findIndex(c => c.item_type === 'accessory' && c.item_id === a.id && c.is_foc === isFoc)
-
     if (existingIdx >= 0 && !isFoc) {
       const next = [...cart]
       next[existingIdx].qty += 1
@@ -121,7 +223,6 @@ export default function POSPage() {
     const item = cart[i]
     if (item.item_type !== 'accessory') return
     if (item.is_foc) {
-      // FOC ဖျက်
       const next = [...cart]
       next[i].is_foc = false
       next[i].foc_reason = undefined
@@ -129,7 +230,6 @@ export default function POSPage() {
       if (acc) next[i].price = Number(acc.price)
       setCart(next)
     } else {
-      // FOC modal ဖွင့်
       setFocModal(item)
       setFocReason('gift')
     }
@@ -186,31 +286,134 @@ export default function POSPage() {
     !accSearch || a.name.toLowerCase().includes(accSearch.toLowerCase())
   )
 
+  function highlightText(text: string, q: string) {
+    if (!q) return text
+    const idx = text.toLowerCase().indexOf(q.toLowerCase())
+    if (idx < 0) return text
+    return (
+      <>
+        {text.slice(0, idx)}
+        <mark className="bg-yellow-200 font-bold">{text.slice(idx, idx + q.length)}</mark>
+        {text.slice(idx + q.length)}
+      </>
+    )
+  }
+
   return (
     <div className="min-h-screen bg-gray-50 p-4">
       <h1 className="text-2xl font-bold mb-4 text-green-800">{t('pos.title')}</h1>
 
       <div className="grid grid-cols-1 lg:grid-cols-3 gap-4">
         <div className="lg:col-span-2 bg-white rounded-lg shadow p-4">
-          <div className="flex gap-2 mb-4">
-            <input
-              value={imei}
-              onChange={e => setImei(e.target.value)}
-              onKeyDown={e => e.key === 'Enter' && scanImei()}
-              placeholder={t('pos.scan_placeholder')}
-              className="border p-3 flex-1 rounded text-lg focus:outline-none focus:ring-2 focus:ring-green-500"
-              autoFocus
-            />
-            <button onClick={scanImei} disabled={loading}
-              className="bg-green-600 hover:bg-green-700 text-white px-6 rounded disabled:opacity-50">
-              {loading ? '...' : t('common.add')}
-            </button>
-            <button onClick={() => setShowAccModal(true)}
-              className="bg-purple-600 hover:bg-purple-700 text-white px-4 rounded font-medium">
-              📦 Accessory
-            </button>
+          {/* IMEI Input with Suggest */}
+          <div className="relative mb-4">
+            <div className="flex gap-2">
+              <div className="relative flex-1">
+                <input
+                  ref={inputRef}
+                  value={imei}
+                  onChange={e => setImei(e.target.value)}
+                  onKeyDown={onKeyDown}
+                  onFocus={() => imei.length >= 2 && suggestions.length > 0 && setShowSuggest(true)}
+                  placeholder={t('pos.scan_placeholder')}
+                  className="border-2 border-green-500 p-3 rounded text-lg w-full focus:outline-none focus:ring-2 focus:ring-green-500 font-mono"
+                  autoFocus
+                  autoComplete="off"
+                />
+                {imei && (
+                  <button
+                    onClick={() => { setImei(''); setSuggestions([]); setShowSuggest(false); inputRef.current?.focus() }}
+                    className="absolute right-3 top-1/2 -translate-y-1/2 text-gray-400 hover:text-gray-700 text-xl"
+                  >
+                    ×
+                  </button>
+                )}
+
+                {/* Suggestions Dropdown */}
+                {showSuggest && suggestions.length > 0 && (
+                  <div
+                    ref={suggestRef}
+                    className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-green-500 rounded-lg shadow-xl z-50 max-h-80 overflow-y-auto"
+                  >
+                    <div className="p-2 bg-green-50 text-xs text-green-800 font-medium border-b sticky top-0">
+                      🔍 {suggestions.length} လုံး တွေ့ — ↑↓ ရွေး / Enter နှိပ်
+                    </div>
+                    {suggestions.map((s, idx) => (
+                      <button
+                        key={s.id}
+                        onClick={() => {
+                          supabase.from('devices').select('*').eq('id', s.id).maybeSingle().then(({ data }) => {
+                            if (data) addDeviceToCart(data)
+                          })
+                        }}
+                        onMouseEnter={() => setHighlightIdx(idx)}
+                        className={`w-full text-left p-3 border-b hover:bg-green-50 transition ${
+                          idx === highlightIdx ? 'bg-green-100 border-l-4 border-l-green-600' : ''
+                        }`}
+                      >
+                        <div className="flex justify-between items-start gap-3">
+                          <div className="flex-1 min-w-0">
+                            <div className="font-bold text-green-800">
+                              {s.model} {s.storage} {s.color && `• ${s.color}`}
+                            </div>
+                            <div className="text-xs font-mono text-gray-600 mt-0.5">
+                              IMEI: {highlightText(s.imei, imei.trim())}
+                            </div>
+                            <div className="flex gap-2 mt-1 text-xs flex-wrap">
+                              {s.battery_health != null && (
+                                <span className={`bg-white px-1.5 py-0.5 rounded border ${batteryColor(s.battery_health)}`}>
+                                  🔋 {s.battery_health}%
+                                </span>
+                              )}
+                              {s.grade && (
+                                <span className="bg-white px-1.5 py-0.5 rounded border">
+                                  Grade <strong className="text-green-700">{s.grade}</strong>
+                                </span>
+                              )}
+                              {s.region && (
+                                <span className="bg-blue-100 text-blue-800 px-1.5 py-0.5 rounded">
+                                  {s.region}
+                                </span>
+                              )}
+                            </div>
+                          </div>
+                          <div className="text-right shrink-0">
+                            <div className="font-bold text-green-700 text-sm">
+                              {Number(s.sale_price).toLocaleString()}
+                            </div>
+                            <div className="text-xs text-gray-400">Ks</div>
+                          </div>
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                )}
+
+                {showSuggest && suggestions.length === 0 && imei.length >= 2 && (
+                  <div className="absolute top-full left-0 right-0 mt-1 bg-white border-2 border-gray-300 rounded-lg shadow-lg p-4 text-center text-gray-500 text-sm z-50">
+                    IMEI "{imei}" နဲ့ ကိုက်တာ မတွေ့ပါ
+                  </div>
+                )}
+              </div>
+
+              <button
+                onClick={scanImei}
+                disabled={loading}
+                className="bg-green-600 hover:bg-green-700 text-white px-6 rounded disabled:opacity-50 font-medium"
+              >
+                {loading ? '...' : t('common.add')}
+              </button>
+
+              <button
+                onClick={() => setShowAccModal(true)}
+                className="bg-purple-600 hover:bg-purple-700 text-white px-4 rounded font-medium"
+              >
+                📦 Accessory
+              </button>
+            </div>
           </div>
 
+          {/* Cart Items */}
           <div className="space-y-2">
             {cart.length === 0 && (
               <div className="p-8 text-center text-gray-400">{t('pos.cart_empty')}</div>
@@ -234,18 +437,24 @@ export default function POSPage() {
                         )}
                         {c.grade && <span className="bg-white px-2 py-0.5 rounded border">Grade <strong className="text-green-700">{c.grade}</strong></span>}
                         {c.region && <span className="bg-blue-100 text-blue-800 px-2 py-0.5 rounded">{c.region}</span>}
-                        {(c.warranty_days || 0) > 0 && <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">🛡️ {c.warranty_days} ရက်</span>}
+                        {(c.warranty_days || 0) > 0 && (
+                          <span className="bg-yellow-100 text-yellow-800 px-2 py-0.5 rounded">🛡️ {c.warranty_days} ရက်</span>
+                        )}
                       </div>
                     )}
 
                     {c.item_type === 'accessory' && (
-                      <div className="mt-2 flex items-center gap-2">
+                      <div className="mt-2 flex items-center gap-2 flex-wrap">
                         <label className="text-xs text-gray-600">Qty:</label>
-                        <input type="number" value={c.qty} min={1}
+                        <input
+                          type="number" value={c.qty} min={1}
                           onChange={e => updateQty(i, +e.target.value)}
-                          className="border rounded px-2 py-0.5 w-16 text-sm" />
-                        <button onClick={() => toggleFoc(i)}
-                          className={`text-xs px-2 py-1 rounded border ${c.is_foc ? 'bg-orange-200 border-orange-400' : 'bg-white border-gray-300 hover:border-orange-400'}`}>
+                          className="border rounded px-2 py-0.5 w-16 text-sm"
+                        />
+                        <button
+                          onClick={() => toggleFoc(i)}
+                          className={`text-xs px-2 py-1 rounded border ${c.is_foc ? 'bg-orange-200 border-orange-400' : 'bg-white border-gray-300 hover:border-orange-400'}`}
+                        >
                           {c.is_foc ? '🎁 FOC ဖျက်' : '🎁 FOC လုပ်'}
                         </button>
                         {c.is_foc && c.foc_reason && (
@@ -254,7 +463,7 @@ export default function POSPage() {
                       </div>
                     )}
                   </div>
-                  <div className="text-right">
+                  <div className="text-right ml-4">
                     {c.is_foc ? (
                       <>
                         <div className="font-bold text-orange-700 line-through">{Number(c.cost).toLocaleString()}</div>
@@ -333,8 +542,7 @@ export default function POSPage() {
               <button onClick={() => setShowAccModal(false)} className="text-gray-400 text-2xl leading-none">×</button>
             </div>
             <input value={accSearch} onChange={e => setAccSearch(e.target.value)}
-              placeholder="🔍 ရှာ"
-              className="border p-2 rounded mb-3" />
+              placeholder="🔍 ရှာ" className="border p-2 rounded mb-3" />
             <div className="flex-1 overflow-y-auto space-y-2">
               {filteredAcc.length === 0 && <p className="text-center text-gray-400 py-4">Accessory မရှိပါ</p>}
               {filteredAcc.map(a => (
@@ -362,7 +570,7 @@ export default function POSPage() {
         </div>
       )}
 
-      {/* FOC Reason Modal */}
+      {/* FOC Modal */}
       {focModal && (
         <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
           <div className="bg-white rounded-lg shadow-xl max-w-md w-full p-5">

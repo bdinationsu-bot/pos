@@ -33,3 +33,25 @@ body {
   box-shadow: 0 1px 3px rgba(0,0,0,0.08);
   padding: 1rem;
 }
+
+/* ═══════════ PRINT FIX — Sidebar ဖျောက် ═══════════ */
+@media print {
+  aside,
+  nav,
+  button.no-print,
+  .no-print {
+    display: none !important;
+  }
+  main {
+    margin-left: 0 !important;
+    padding: 10mm !important;
+    width: 100% !important;
+  }
+  html, body {
+    background: #fff !important;
+  }
+  * {
+    -webkit-print-color-adjust: exact !important;
+    print-color-adjust: exact !important;
+  }
+}

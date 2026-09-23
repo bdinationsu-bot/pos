@@ -158,7 +158,6 @@ export default function InventoryPage() {
                 <th className="p-3 text-left">IMEI</th>
                 <th className="p-3 text-center">Region</th>
                 <th className="p-3 text-center">Battery</th>
-                <th className="p-3 text-center">Grade</th>
                 <th className="p-3 text-right">Cost</th>
                 <th className="p-3 text-right">Sale</th>
                 <th className="p-3 text-left">Supplier</th>

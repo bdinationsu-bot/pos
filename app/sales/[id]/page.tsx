@@ -9,7 +9,7 @@ import autoTable from 'jspdf-autotable'
 export default function SaleDetail() {
   const { id } = useParams()
   const router = useRouter()
-  const { canSeeProfit, canSeeCost } = useRole()
+  const { canSeeProfit } = useRole()
   const [sale, setSale] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
   const [payments, setPayments] = useState<any[]>([])
@@ -37,34 +37,19 @@ export default function SaleDetail() {
     })()
   }, [id])
 
-  async function refundSale() {
-    if (!confirm('Refund လုပ်မှာ သေချာလား?')) return
-    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။')) return
-    const deviceIds = items.filter(i => i.item_type === 'device').map(i => i.item_id)
-    if (deviceIds.length) {
-      await supabase.from('devices').update({ status: 'in_stock' }).in('id', deviceIds)
-    }
-    await supabase.from('sales').update({ payment_status: 'refunded' }).eq('id', id)
-    alert('✅ Refund ပြီးပါပြီ')
-    router.push('/sales')
-  }
-
   async function deleteSale() {
-    if (!confirm(`⚠️ ${sale.invoice_no} ကို ဖျက်မှာ သေချာလား?\n\n• Device status → in_stock ပြန်\n• Cashbook entry ဖျက်\n• Payment records ဖျက်\n• ပြန်ယူလို့ မရပါ`)) return
-    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။ DELETE ဖြစ်သွားရင် ပြန်မရနိုင်ပါ။')) return
-
+    if (!confirm(`⚠️ ${sale.invoice_no} ကို ဖျက်မှာ သေချာလား?\n\nDevice status → in_stock ပြန်မယ်`)) return
+    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။')) return
     setDeleting(true)
     const { error } = await supabase.rpc('delete_sale', { p_sale_id: Number(id) })
     setDeleting(false)
-
-    if (error) return alert('❌ Error: ' + error.message)
+    if (error) return alert('❌ ' + error.message)
     alert('✅ ဖျက်ပြီးပါပြီ')
     router.push('/sales')
   }
 
   function exportPDF() {
     const doc = new jsPDF()
-
     doc.setFillColor(22, 163, 74)
     doc.rect(0, 0, 210, 35, 'F')
     doc.setTextColor(255, 255, 255)
@@ -75,7 +60,6 @@ export default function SaleDetail() {
     doc.setFont('helvetica', 'normal')
     if (shop.shop_phone) doc.text(`Phone: ${shop.shop_phone}`, 15, 22)
     if (shop.shop_address) doc.text(shop.shop_address, 15, 28)
-
     doc.setFontSize(24)
     doc.setFont('helvetica', 'bold')
     doc.text('INVOICE', 195, 18, { align: 'right' })
@@ -85,7 +69,6 @@ export default function SaleDetail() {
 
     doc.setTextColor(0, 0, 0)
     let y = 50
-
     doc.setFillColor(240, 253, 244)
     doc.rect(15, y - 5, 90, 30, 'F')
     doc.setFontSize(11)
@@ -106,53 +89,55 @@ export default function SaleDetail() {
     doc.setFontSize(9)
     doc.text(`Invoice: ${sale.invoice_no}`, 113, y + 7)
     doc.text(`Date: ${new Date(sale.created_at).toLocaleDateString()}`, 113, y + 13)
-    doc.text(`Time: ${new Date(sale.created_at).toLocaleTimeString()}`, 113, y + 19)
     if (sale.staff?.name) doc.text(`Staff: ${sale.staff.name}`, 113, y + 25)
 
     y += 35
 
+    // Items — Specs below name, no Grade column
+    const body: any[] = []
+    items.forEach((it, i) => {
+      const specs: string[] = []
+      if (it.battery_health) specs.push(`Battery ${it.battery_health}%`)
+      if (it.storage) specs.push(it.storage)
+      if (it.color) specs.push(it.color)
+      if (it.region) specs.push(it.region)
+      if (it.warranty_days) specs.push(`Warranty ${it.warranty_days}d`)
+
+      body.push([
+        { content: String(i + 1), styles: { valign: 'top' } },
+        {
+          content: `${it.name}\n${it.imei ? 'IMEI: ' + it.imei : ''}${specs.length ? '\n' + specs.join(' • ') : ''}`,
+          styles: { valign: 'top', fontSize: 9 }
+        },
+        { content: String(it.qty), styles: { valign: 'top', halign: 'center' } },
+        { content: Number(it.price).toLocaleString(), styles: { valign: 'top', halign: 'right' } },
+        { content: (Number(it.price) * it.qty).toLocaleString(), styles: { valign: 'top', halign: 'right', fontStyle: 'bold' } }
+      ])
+    })
+
     autoTable(doc, {
       startY: y,
-      head: [['#', 'Item', 'IMEI', 'Specs', 'Qty', 'Price', 'Amount']],
-      body: items.map((it, i) => {
-        const specs: string[] = []
-        if (it.battery_health) specs.push(`Battery ${it.battery_health}%`)
-        if (it.grade) specs.push(`Grade ${it.grade}`)
-        if (it.region) specs.push(it.region)
-        if (it.warranty_days) specs.push(`Warranty ${it.warranty_days}d`)
-        return [
-          i + 1,
-          it.name,
-          it.imei || '-',
-          specs.join(' • ') || '-',
-          it.qty,
-          Number(it.price).toLocaleString(),
-          (Number(it.price) * it.qty).toLocaleString()
-        ]
-      }),
-      styles: { fontSize: 8, cellPadding: 2 },
+      head: [['#', 'Item', 'Qty', 'Price', 'Amount']],
+      body,
+      styles: { fontSize: 9, cellPadding: 3 },
       columnStyles: {
         0: { cellWidth: 8 },
-        1: { cellWidth: 42 },
-        2: { cellWidth: 32, font: 'courier', fontSize: 7 },
-        3: { cellWidth: 38, fontSize: 7 },
-        4: { cellWidth: 10, halign: 'center' },
-        5: { cellWidth: 22, halign: 'right' },
-        6: { cellWidth: 25, halign: 'right' }
+        1: { cellWidth: 100 },
+        2: { cellWidth: 15 },
+        3: { cellWidth: 30 },
+        4: { cellWidth: 32 }
       },
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [240, 253, 244] }
     })
 
     y = (doc as any).lastAutoTable.finalY + 10
-
     const totalsX = 130
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
     doc.text('Subtotal:', totalsX, y)
     doc.text(`${Number(sale.subtotal).toLocaleString()} Ks`, 195, y, { align: 'right' })
     y += 6
-
     if (Number(sale.discount) > 0) {
       doc.setTextColor(234, 88, 12)
       doc.text('Discount:', totalsX, y)
@@ -167,12 +152,10 @@ export default function SaleDetail() {
       y += 6
       doc.setTextColor(0, 0, 0)
     }
-
     doc.setDrawColor(22, 163, 74)
     doc.setLineWidth(0.5)
     doc.line(totalsX, y - 2, 195, y - 2)
     y += 4
-
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(22, 163, 74)
@@ -180,7 +163,6 @@ export default function SaleDetail() {
     doc.text(`${Number(sale.total).toLocaleString()} Ks`, 195, y, { align: 'right' })
 
     y += 12
-
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'bold')
@@ -188,29 +170,46 @@ export default function SaleDetail() {
     doc.setFont('helvetica', 'normal')
     y += 6
     payments.forEach(p => {
-      doc.text(`${p.method}: ${Number(p.amount).toLocaleString()} Ks${p.ref_no ? ` (${p.ref_no})` : ''}`, 15, y)
+      doc.text(`${p.method}: ${Number(p.amount).toLocaleString()} Ks`, 15, y)
       y += 5
     })
 
-    if (items.some(it => it.item_type === 'device')) {
-      y += 8
+    // Invoice Note (custom)
+    if (shop.invoice_note) {
+      y += 10
+      const noteLines = doc.splitTextToSize(shop.invoice_note, 180)
+      doc.setFillColor(254, 252, 232)
+      doc.rect(15, y - 4, 180, 8 + noteLines.length * 5, 'F')
+      doc.setFontSize(9)
+      doc.setFont('helvetica', 'bold')
+      doc.setTextColor(113, 63, 18)
+      doc.text('Note:', 18, y + 2)
+      doc.setFont('helvetica', 'normal')
+      doc.setTextColor(120, 80, 20)
+      doc.setFontSize(8)
+      doc.text(noteLines, 18, y + 8)
+      y += 10 + noteLines.length * 5
+    }
+
+    // Warranty Policy (custom from settings)
+    if (items.some(it => it.item_type === 'device') && shop.warranty_policy) {
+      y += 10
+      const policyLines = doc.splitTextToSize(shop.warranty_policy, 180)
       doc.setFillColor(240, 253, 244)
-      doc.rect(15, y - 4, 180, 22, 'F')
+      doc.rect(15, y - 4, 180, 8 + policyLines.length * 5, 'F')
       doc.setFontSize(9)
       doc.setFont('helvetica', 'bold')
       doc.setTextColor(21, 128, 61)
-      doc.text('Warranty Terms:', 18, y + 2)
+      doc.text('Warranty Policy:', 18, y + 2)
       doc.setFont('helvetica', 'normal')
       doc.setTextColor(80, 80, 80)
       doc.setFontSize(8)
-      doc.text('- 7 days warranty for devices (unless otherwise specified)', 18, y + 8)
-      doc.text('- Physical damage, water damage, or tampering is not covered', 18, y + 13)
-      y += 28
+      doc.text(policyLines, 18, y + 8)
+      y += 10 + policyLines.length * 5
     }
 
     y += 10
     doc.setDrawColor(22, 163, 74)
-    doc.setLineWidth(0.5)
     doc.line(15, y, 195, y)
     y += 8
     doc.setFontSize(9)
@@ -223,12 +222,6 @@ export default function SaleDetail() {
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(22, 163, 74)
     doc.text('Thank You', 105, y, { align: 'center' })
-
-    y += 6
-    doc.setFontSize(8)
-    doc.setFont('helvetica', 'normal')
-    doc.setTextColor(160, 160, 160)
-    doc.text(`Generated on ${new Date().toLocaleString('en-US')}`, 105, y, { align: 'center' })
 
     doc.save(`${sale.invoice_no}.pdf`)
   }
@@ -254,13 +247,9 @@ export default function SaleDetail() {
           <div className="text-xs text-gray-500">{new Date(sale.created_at).toLocaleString()}</div>
         </div>
         <div className="flex gap-2">
-          <button onClick={exportPDF} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium">
-            📄 PDF
-          </button>
+          <button onClick={exportPDF} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium">📄 PDF</button>
           <button onClick={() => window.open(`/print/invoice/${id}`, '_blank', 'width=900,height=1200')}
-            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium">
-            🖨️ Print
-          </button>
+            className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium">🖨️ Print</button>
           <button onClick={() => router.push('/sales')} className="bg-gray-200 px-4 py-2 rounded font-medium">← ပြန်</button>
         </div>
       </div>
@@ -277,7 +266,6 @@ export default function SaleDetail() {
           <div className="text-sm space-y-1">
             <div><strong>နာမည်:</strong> {customer?.name || 'Walk-in Customer'}</div>
             {customer?.phone && <div><strong>ဖုန်း:</strong> {customer.phone}</div>}
-            {customer?.address && <div><strong>လိပ်စာ:</strong> {customer.address}</div>}
           </div>
         </div>
         <div className="bg-white rounded shadow p-4">
@@ -299,6 +287,13 @@ export default function SaleDetail() {
         <div className="space-y-3">
           {items.map((it, i) => {
             const itemProfit = (Number(it.price) - Number(it.cost)) * it.qty
+            const specs: string[] = []
+            if (it.battery_health) specs.push(`🔋 ${it.battery_health}%`)
+            if (it.storage) specs.push(it.storage)
+            if (it.color) specs.push(it.color)
+            if (it.region) specs.push(it.region)
+            if (it.warranty_days) specs.push(`🛡️ ${it.warranty_days} ရက်`)
+
             return (
               <div key={it.id} className="border rounded-lg p-3 bg-green-50">
                 <div className="flex justify-between items-start">
@@ -307,45 +302,15 @@ export default function SaleDetail() {
                       <span className="text-xs text-gray-500">#{i + 1}</span>
                       <span className="font-bold text-green-800">{it.name}</span>
                     </div>
-                    {it.imei && (
-                      <div className="text-xs font-mono text-gray-600 mt-1">IMEI: {it.imei}</div>
-                    )}
-                    <div className="flex gap-2 mt-2 flex-wrap text-xs">
-                      {it.battery_health != null && (
-                        <span className="bg-white px-2 py-1 rounded border">
-                          🔋 Battery: <span className={batteryColor(it.battery_health)}>{it.battery_health}%</span>
-                        </span>
-                      )}
-                      {it.grade && (
-                        <span className="bg-white px-2 py-1 rounded border">
-                          Grade: <strong className="text-green-700">{it.grade}</strong>
-                        </span>
-                      )}
-                      {it.region && (
-                        <span className="bg-blue-100 text-blue-800 px-2 py-1 rounded">
-                          📡 {it.region}
-                        </span>
-                      )}
-                      {it.warranty_days > 0 && (
-                        <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded">
-                          🛡️ အာမခံ {it.warranty_days} ရက်
-                        </span>
-                      )}
+                    <div className="text-xs text-gray-600 mt-1 space-y-0.5">
+                      {it.imei && <div className="font-mono">IMEI: {it.imei}</div>}
+                      {specs.length > 0 && <div>• {specs.join(' • ')}</div>}
                     </div>
-
-                    {/* Cost / Profit — Role-based */}
-                    {canSeeCost && (
-                      <div className="flex gap-2 mt-2 flex-wrap text-xs">
-                        <span className="bg-orange-50 px-2 py-1 rounded border border-orange-200">
-                          Cost: <strong className="text-orange-700">{Number(it.cost).toLocaleString()}</strong>
+                    {canSeeProfit && (
+                      <div className="mt-2">
+                        <span className={`text-xs px-2 py-1 rounded border ${itemProfit >= 0 ? 'bg-green-100 border-green-300 text-green-700' : 'bg-red-100 border-red-300 text-red-700'}`}>
+                          💰 Profit: {itemProfit.toLocaleString()}
                         </span>
-                        {canSeeProfit && (
-                          <span className={`px-2 py-1 rounded border ${
-                            itemProfit >= 0 ? 'bg-green-100 border-green-300 text-green-700' : 'bg-red-100 border-red-300 text-red-700'
-                          }`}>
-                            💰 Profit: <strong>{itemProfit.toLocaleString()}</strong>
-                          </span>
-                        )}
                       </div>
                     )}
                   </div>
@@ -370,8 +335,6 @@ export default function SaleDetail() {
           <div className="flex justify-between font-bold text-lg border-t pt-2 mt-2">
             <span>Total</span><span className="text-green-700">{Number(sale.total).toLocaleString()} Ks</span>
           </div>
-
-          {/* Profit — Only Owner + Accountant */}
           {canSeeProfit && (
             <div className="flex justify-between text-sm border-t pt-2 mt-2 text-green-700 font-medium">
               <span>💰 အမြတ်</span><span>{profit.toLocaleString()} Ks</span>
@@ -383,23 +346,26 @@ export default function SaleDetail() {
           {payments.map(p => (
             <div key={p.id} className="text-sm flex justify-between">
               <span className="capitalize">{p.method}</span>
-              <span>{Number(p.amount).toLocaleString()} Ks {p.ref_no && <span className="text-xs text-gray-500">({p.ref_no})</span>}</span>
+              <span>{Number(p.amount).toLocaleString()} Ks</span>
             </div>
           ))}
         </div>
       </div>
 
-      {!isRefunded && (
-        <div className="flex gap-2">
-          <button onClick={refundSale} className="bg-orange-600 hover:bg-orange-700 text-white px-6 py-3 rounded font-medium">
-            ↩️ Refund
-          </button>
-          <button onClick={deleteSale} disabled={deleting}
-            className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-medium disabled:opacity-50">
-            {deleting ? 'ဖျက်နေတယ်...' : '🗑️ ဖျက်'}
-          </button>
-        </div>
-      )}
+      <div className="flex gap-2 flex-wrap">
+        {!isRefunded && (
+          <>
+            <button onClick={() => router.push(`/sales/returns/new?sale_id=${id}`)}
+              className="bg-red-600 hover:bg-red-700 text-white px-6 py-3 rounded font-medium">
+              ↩️ Return လုပ်
+            </button>
+            <button onClick={deleteSale} disabled={deleting}
+              className="bg-gray-700 hover:bg-gray-800 text-white px-6 py-3 rounded font-medium disabled:opacity-50">
+              {deleting ? '...' : '🗑️ ဖျက်'}
+            </button>
+          </>
+        )}
+      </div>
     </div>
   )
 }
