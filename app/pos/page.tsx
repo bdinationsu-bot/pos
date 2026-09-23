@@ -45,6 +45,11 @@ export default function POSPage() {
   const [staffList, setStaffList] = useState<any[]>([])
   const [staffId, setStaffId] = useState<number | null>(null)
   const [payModal, setPayModal] = useState<PaymentCategory | null>(null)
+  const [showInstModal, setShowInstModal] = useState(false)
+  const [instType, setInstType] = useState<"rent2own" | "maharbawga">("rent2own")
+  const [instCount, setInstCount] = useState(6)
+  const [instDP, setInstDP] = useState(0)
+  const [instStartDate, setInstStartDate] = useState(new Date().toISOString().slice(0,10))
   const [payRef, setPayRef] = useState('')
 
   // Accessories picker

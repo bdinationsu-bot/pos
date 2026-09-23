@@ -16,6 +16,7 @@ const menus: Menu[] = [
   { href: '/', labelKey: 'menu.dashboard', icon: '🏠', roles: ['owner', 'manager', 'cashier', 'accountant', 'customer_service'] },
   { href: '/pos', labelKey: 'menu.pos', icon: '🛒', roles: ['owner', 'manager', 'cashier'] },
   { href: '/sales', labelKey: 'menu.sales', icon: '🧾', roles: ['owner', 'manager', 'cashier', 'accountant'] },
+  { href: '/installments', labelKey: 'menu.installments', icon: '💳', roles: ['owner', 'manager', 'cashier', 'accountant'] },
   { href: '/inventory', labelKey: 'menu.inventory', icon: '📱', roles: ['owner', 'manager', 'cashier', 'customer_service'] },
   { href: '/accessories', labelKey: 'menu.accessories', icon: '📦', roles: ['owner', 'manager', 'cashier'] },
   { href: '/tradein/new', labelKey: 'menu.tradein', icon: '🔄', roles: ['owner', 'manager', 'cashier'] },

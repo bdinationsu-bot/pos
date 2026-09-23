@@ -35,6 +35,8 @@ const translations: Record<string, { en: string; mm: string }> = {
 
   'menu.pos': { en: 'POS', mm: 'အရောင်း' },
   'menu.sales': { en: 'Sales History', mm: 'အရောင်းမှတ်တမ်း' },
+  'menu.installments': { en: 'Installments', mm: 'အရစ်ကျ' },
+
   'menu.inventory': { en: 'Inventory', mm: 'လက်ကျန် ပစ္စည်း' },
   'menu.accessories': { en: 'Accessories', mm: 'ဆက်စပ်ပစ္စည်း' },
   'menu.tradein': { en: 'Trade-in', mm: 'အဟောင်းလဲ' },
