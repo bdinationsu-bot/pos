@@ -33,8 +33,6 @@ export default function PurchaseDetail() {
 
   function exportPDF() {
     const doc = new jsPDF()
-
-    // Header
     doc.setFillColor(22, 163, 74)
     doc.rect(0, 0, 210, 35, 'F')
     doc.setTextColor(255, 255, 255)
@@ -43,9 +41,8 @@ export default function PurchaseDetail() {
     doc.text(shop.shop_name || 'POS', 15, 15)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    if (shop.shop_phone) doc.text(`Phone: ${shop.shop_phone}`, 15, 22)
+    if (shop.shop_phone) doc.text('Phone: ' + shop.shop_phone, 15, 22)
     if (shop.shop_address) doc.text(shop.shop_address, 15, 28)
-
     doc.setFontSize(24)
     doc.setFont('helvetica', 'bold')
     doc.text('PURCHASE ORDER', 195, 18, { align: 'right' })
@@ -53,10 +50,8 @@ export default function PurchaseDetail() {
     doc.setFont('helvetica', 'normal')
     doc.text(purchase.purchase_no, 195, 26, { align: 'right' })
 
-    // Supplier + Info
     doc.setTextColor(0, 0, 0)
     let y = 50
-
     doc.setFillColor(240, 253, 244)
     doc.rect(15, y - 5, 90, 30, 'F')
     doc.setFontSize(11)
@@ -75,14 +70,12 @@ export default function PurchaseDetail() {
     doc.text('Order Details:', 113, y)
     doc.setFont('helvetica', 'normal')
     doc.setFontSize(9)
-    doc.text(`PO No: ${purchase.purchase_no}`, 113, y + 7)
-    doc.text(`Date: ${purchase.purchase_date}`, 113, y + 13)
-    doc.text(`Type: ${purchase.purchase_type}`, 113, y + 19)
-    doc.text(`Status: ${purchase.status}`, 113, y + 25)
+    doc.text('PO No: ' + purchase.purchase_no, 113, y + 7)
+    doc.text('Date: ' + purchase.purchase_date, 113, y + 13)
+    doc.text('Type: ' + purchase.purchase_type, 113, y + 19)
 
     y += 35
 
-    // Items
     autoTable(doc, {
       startY: y,
       head: [['#', 'Item', 'Qty', 'Unit Cost', 'Amount']],
@@ -93,83 +86,57 @@ export default function PurchaseDetail() {
         const name = it.name || it.model || ''
         return [
           i + 1,
-          `${name}${it.imei ? '\nIMEI: ' + it.imei : ''}${specs.length ? '\n' + specs.join(' • ') : ''}`,
+          name + (it.imei ? '\nIMEI: ' + it.imei : '') + (specs.length ? '\n' + specs.join(' / ') : ''),
           it.qty,
           Number(it.unit_cost).toLocaleString(),
           Number(it.total_cost).toLocaleString()
         ]
       }),
       styles: { fontSize: 9, cellPadding: 3 },
-      columnStyles: {
-        0: { cellWidth: 8 },
-        1: { cellWidth: 100 },
-        2: { cellWidth: 15, halign: 'center' },
-        3: { cellWidth: 30, halign: 'right' },
-        4: { cellWidth: 32, halign: 'right' }
-      },
+      columnStyles: { 0: { cellWidth: 8 }, 1: { cellWidth: 100 }, 2: { cellWidth: 15, halign: 'center' }, 3: { cellWidth: 30, halign: 'right' }, 4: { cellWidth: 32, halign: 'right' } },
       headStyles: { fillColor: [22, 163, 74], textColor: 255, fontStyle: 'bold' },
       alternateRowStyles: { fillColor: [240, 253, 244] }
     })
 
     y = (doc as any).lastAutoTable.finalY + 10
-
-    const totalsX = 130
+    const tx = 130
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.text('Subtotal:', totalsX, y)
-    doc.text(`${Number(purchase.subtotal).toLocaleString()} Ks`, 195, y, { align: 'right' })
+    doc.text('Subtotal:', tx, y)
+    doc.text(Number(purchase.subtotal).toLocaleString() + ' Ks', 195, y, { align: 'right' })
     y += 6
     if (Number(purchase.discount) > 0) {
       doc.setTextColor(234, 88, 12)
-      doc.text('Discount:', totalsX, y)
-      doc.text(`-${Number(purchase.discount).toLocaleString()} Ks`, 195, y, { align: 'right' })
+      doc.text('Discount:', tx, y)
+      doc.text('-' + Number(purchase.discount).toLocaleString() + ' Ks', 195, y, { align: 'right' })
       y += 6
       doc.setTextColor(0, 0, 0)
     }
     if (Number(purchase.tax) > 0) {
-      doc.text('Tax:', totalsX, y)
-      doc.text(`+${Number(purchase.tax).toLocaleString()} Ks`, 195, y, { align: 'right' })
+      doc.text('Tax:', tx, y)
+      doc.text('+' + Number(purchase.tax).toLocaleString() + ' Ks', 195, y, { align: 'right' })
       y += 6
     }
-
     doc.setDrawColor(22, 163, 74)
     doc.setLineWidth(0.5)
-    doc.line(totalsX, y - 2, 195, y - 2)
+    doc.line(tx, y - 2, 195, y - 2)
     y += 4
-
     doc.setFontSize(13)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(22, 163, 74)
-    doc.text('TOTAL:', totalsX, y)
-    doc.text(`${Number(purchase.total).toLocaleString()} Ks`, 195, y, { align: 'right' })
+    doc.text('TOTAL:', tx, y)
+    doc.text(Number(purchase.total).toLocaleString() + ' Ks', 195, y, { align: 'right' })
     y += 8
-
     doc.setTextColor(0, 0, 0)
     doc.setFontSize(10)
     doc.setFont('helvetica', 'normal')
-    doc.text('Paid:', totalsX, y)
-    doc.text(`${Number(purchase.paid).toLocaleString()} Ks`, 195, y, { align: 'right' })
+    doc.text('Paid:', tx, y)
+    doc.text(Number(purchase.paid).toLocaleString() + ' Ks', 195, y, { align: 'right' })
     y += 6
     doc.setFont('helvetica', 'bold')
-    doc.setTextColor(Number(purchase.balance) > 0 ? 220 : 22, Number(purchase.balance) > 0 ? 38 : 163, Number(purchase.balance) > 0 ? 38 : 74)
-    doc.text('Balance:', totalsX, y)
-    doc.text(`${Number(purchase.balance).toLocaleString()} Ks`, 195, y, { align: 'right' })
+    doc.text('Balance:', tx, y)
+    doc.text(Number(purchase.balance).toLocaleString() + ' Ks', 195, y, { align: 'right' })
 
-    // Note
-    if (purchase.note) {
-      y += 15
-      doc.setTextColor(0, 0, 0)
-      doc.setFontSize(10)
-      doc.setFont('helvetica', 'bold')
-      doc.text('Note:', 15, y)
-      doc.setFont('helvetica', 'normal')
-      doc.setFontSize(9)
-      const noteLines = doc.splitTextToSize(purchase.note, 180)
-      doc.text(noteLines, 15, y + 6)
-      y += 6 + noteLines.length * 5
-    }
-
-    // Signatures
     y += 20
     doc.setDrawColor(22, 163, 74)
     doc.line(15, y, 195, y)
@@ -179,18 +146,17 @@ export default function PurchaseDetail() {
     doc.text('Buyer Signature: ______________________', 15, y)
     doc.text('Supplier Signature: ______________________', 110, y)
 
-    // Footer
     y += 15
     doc.setFontSize(12)
     doc.setFont('helvetica', 'bold')
     doc.setTextColor(22, 163, 74)
-    doc.text(shop.footer_text || 'Thank You', 105, y, { align: 'center' })
+    doc.text('Thank You', 105, y, { align: 'center' })
 
-    doc.save(`${purchase.purchase_no}.pdf`)
+    doc.save(purchase.purchase_no + '.pdf')
   }
 
   if (loading) return <p className="p-6">...</p>
-  if (!purchase) return <p className="p-6">Purchase မတွေ့ပါ</p>
+  if (!purchase) return <p className="p-6">Purchase မတွေ့ပါ — ID: {id}</p>
 
   return (
     <div className="p-6 max-w-4xl">
@@ -203,8 +169,7 @@ export default function PurchaseDetail() {
           <button onClick={exportPDF} className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium">
             📄 PDF
           </button>
-          <button
-            onClick={() => window.open(`/print/purchase/${id}`, '_blank', 'width=900,height=1200')}
+          <button onClick={() => window.open('/print/purchase/' + id, '_blank', 'width=900,height=1200')}
             className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium">
             🖨️ Print
           </button>
@@ -214,16 +179,15 @@ export default function PurchaseDetail() {
 
       <div className="grid grid-cols-2 gap-4 mb-4">
         <div className="bg-white rounded shadow p-4">
-          <h2 className="font-bold mb-2 text-green-700">🏭 Supplier</h2>
+          <h2 className="font-bold mb-2 text-green-700">Supplier</h2>
           <div className="text-sm space-y-1">
             <div><strong>နာမည်:</strong> {supplier?.name || '-'}</div>
             {supplier?.company && <div><strong>ကုမ္ပဏီ:</strong> {supplier.company}</div>}
             {supplier?.phone && <div><strong>ဖုန်း:</strong> {supplier.phone}</div>}
-            {supplier?.address && <div><strong>လိပ်စာ:</strong> {supplier.address}</div>}
           </div>
         </div>
         <div className="bg-white rounded shadow p-4">
-          <h2 className="font-bold mb-2 text-green-700">📋 PO အချက်အလက်</h2>
+          <h2 className="font-bold mb-2 text-green-700">PO Info</h2>
           <div className="text-sm space-y-1">
             <div><strong>PO No:</strong> {purchase.purchase_no}</div>
             <div><strong>ရက်စွဲ:</strong> {purchase.purchase_date}</div>
@@ -233,7 +197,7 @@ export default function PurchaseDetail() {
       </div>
 
       <div className="bg-white rounded shadow p-4 mb-4">
-        <h2 className="font-bold mb-2 text-green-700">📦 Items ({items.length})</h2>
+        <h2 className="font-bold mb-2 text-green-700">Items ({items.length})</h2>
         <table className="w-full text-sm">
           <thead className="bg-green-50">
             <tr>
@@ -259,8 +223,8 @@ export default function PurchaseDetail() {
         </table>
       </div>
 
-      <div className="bg-white rounded shadow p-4 mb-4">
-        <h2 className="font-bold mb-2 text-green-700">💰 ငွေစာရင်း</h2>
+      <div className="bg-white rounded shadow p-4">
+        <h2 className="font-bold mb-2 text-green-700">ငွေစာရင်း</h2>
         <div className="space-y-1 text-sm">
           <div className="flex justify-between"><span>Subtotal</span><span>{Number(purchase.subtotal).toLocaleString()} Ks</span></div>
           {Number(purchase.discount) > 0 && <div className="flex justify-between text-orange-600"><span>Discount</span><span>-{Number(purchase.discount).toLocaleString()} Ks</span></div>}
