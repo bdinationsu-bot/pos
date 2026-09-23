@@ -44,6 +44,8 @@ const translations: Record<string, { en: string; mm: string }> = {
   'menu.suppliers': { en: 'Suppliers', mm: 'ကုန်သွင်းသူများ' },
   'menu.purchases': { en: 'Purchases', mm: 'ဝယ်ယူမှု' },
   'menu.accounting': { en: 'Accounting', mm: 'စာရင်းအင်း' },
+  'menu.reports': { en: 'Reports', mm: 'အစီရင်ခံစာ' },
+
   'menu.staff': { en: 'Staff', mm: 'ဝန်ထမ်း' },
   'menu.settings': { en: 'Settings', mm: 'ဆက်တင်' },
   'menu.dashboard': { en: 'Dashboard', mm: 'ပင်မစာမျက်နှာ' },
