@@ -6,11 +6,16 @@ import { usePathname } from 'next/navigation'
 
 function Shell({ children }: { children: React.ReactNode }) {
   const path = usePathname()
-  const isAuthPage = path === '/login'
 
-  if (isAuthPage) {
+  // Auth pages + Print pages — Sidebar မပါ
+  const noSidebar =
+    path === '/login' ||
+    path.startsWith('/print/')
+
+  if (noSidebar) {
     return <main className="min-h-screen">{children}</main>
   }
+
   return (
     <div className="flex">
       <Sidebar />

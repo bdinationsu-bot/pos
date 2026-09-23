@@ -43,8 +43,8 @@ function BarcodeContent() {
     })
   }, [loading, devices, size])
 
-  if (loading) return <p style={{ padding: 20 }}>...</p>
-  if (!devices.length) return <p style={{ padding: 20 }}>Device မတွေ့ပါ</p>
+  if (loading) return <div style={{ padding: 20 }}>...</div>
+  if (!devices.length) return <div style={{ padding: 20 }}>Device မတွေ့ပါ</div>
 
   const isLandscape = size === '50x40'
   const pageSize = isLandscape ? '50mm 40mm' : '40mm 50mm'
@@ -54,10 +54,9 @@ function BarcodeContent() {
   return (
     <div>
       <style>{`
-        /* ═══ PRINT EXACT SIZE — No margins, no header/footer ═══ */
         @page {
-          size: ${pageSize} !important;
-          margin: 0 !important;
+          size: ${pageSize};
+          margin: 0;
         }
 
         @media print {
@@ -65,9 +64,7 @@ function BarcodeContent() {
             margin: 0 !important;
             padding: 0 !important;
             width: ${stickerW} !important;
-            height: ${stickerH} !important;
             background: #fff !important;
-            overflow: hidden !important;
           }
           .toolbar, .no-print {
             display: none !important;
@@ -75,7 +72,6 @@ function BarcodeContent() {
           .grid {
             display: block !important;
             padding: 0 !important;
-            gap: 0 !important;
             margin: 0 !important;
           }
           .sticker {
@@ -85,19 +81,16 @@ function BarcodeContent() {
             page-break-inside: avoid !important;
             border: none !important;
             margin: 0 !important;
-            padding: 1.5mm !important;
             box-shadow: none !important;
-            display: flex !important;
-            box-sizing: border-box !important;
           }
           * {
             -webkit-print-color-adjust: exact !important;
             print-color-adjust: exact !important;
-            color-adjust: exact !important;
           }
         }
 
-        body { margin: 0; padding: 0; background: #f5f5f5; font-family: -apple-system, Padauk, Arial, sans-serif; }
+        html, body { margin: 0; padding: 0; }
+        body { background: #f5f5f5; font-family: -apple-system, Padauk, Arial, sans-serif; }
         .toolbar { position: fixed; top: 10px; right: 10px; z-index: 100; background: white; padding: 12px; border-radius: 8px; box-shadow: 0 2px 8px rgba(0,0,0,0.15); display: flex; gap: 8px; align-items: center; }
         .grid { display: flex; flex-wrap: wrap; gap: 3mm; padding: 3mm; }
         .sticker {
@@ -142,12 +135,15 @@ function BarcodeContent() {
       `}</style>
 
       <div className="toolbar no-print">
-        <label className="text-xs font-medium">Size:</label>
-        <select value={size} onChange={e => setSize(e.target.value)} className="border rounded p-1 text-sm">
+        <label style={{ fontSize: 12, fontWeight: 'bold' }}>Size:</label>
+        <select value={size} onChange={e => setSize(e.target.value)} style={{ border: '1px solid #ccc', borderRadius: 4, padding: '4px 8px', fontSize: 13 }}>
           <option value="40x50">40 × 50 mm (Portrait)</option>
           <option value="50x40">50 × 40 mm (Landscape)</option>
         </select>
-        <button onClick={() => window.print()} className="bg-green-600 text-white px-4 py-1 rounded text-sm font-medium">
+        <button
+          onClick={() => window.print()}
+          style={{ background: '#16a34a', color: 'white', border: 'none', padding: '6px 16px', borderRadius: 4, cursor: 'pointer', fontWeight: 'bold', fontSize: 13 }}
+        >
           🖨️ Print
         </button>
       </div>
@@ -203,7 +199,7 @@ function BarcodeContent() {
 
 export default function BarcodePrint() {
   return (
-    <Suspense fallback={<p style={{ padding: 20 }}>...</p>}>
+    <Suspense fallback={<div style={{ padding: 20 }}>...</div>}>
       <BarcodeContent />
     </Suspense>
   )
