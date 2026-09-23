@@ -7,12 +7,14 @@ import {
 } from '@/lib/accounting'
 import jsPDF from 'jspdf'
 import autoTable from 'jspdf-autotable'
+import DateRangeFilter, { type DateRange } from '@/components/DateRangeFilter'
 
 export default function AccountingPage() {
   const today = new Date().toISOString().slice(0, 10)
   const firstOfMonth = new Date(new Date().getFullYear(), new Date().getMonth(), 1).toISOString().slice(0, 10)
-  const [from, setFrom] = useState(firstOfMonth)
-  const [to, setTo] = useState(today)
+  const [dateRange, setDateRange] = useState<DateRange>({ from: firstOfMonth, to: today, preset: 'month' })
+  const from = dateRange.from
+  const to = dateRange.to
   const [sales, setSales] = useState<any[]>([])
   const [items, setItems] = useState<any[]>([])
   const [expenses, setExpenses] = useState<any[]>([])
@@ -322,12 +324,7 @@ export default function AccountingPage() {
         </div>
       </div>
 
-      <div className="flex gap-3 mb-4 items-center">
-        <label className="text-sm">မှ</label>
-        <input type="date" value={from} onChange={e => setFrom(e.target.value)} className="border p-2 rounded" />
-        <label className="text-sm">ထိ</label>
-        <input type="date" value={to} onChange={e => setTo(e.target.value)} className="border p-2 rounded" />
-      </div>
+      <DateRangeFilter value={dateRange} onChange={setDateRange} />
 
       {showExpForm && (
         <div className="bg-white rounded shadow p-4 mb-4 border-2 border-red-300">
