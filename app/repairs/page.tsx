@@ -1,8 +1,8 @@
 'use client'
-import { useLang } from '@/lib/i18n'
 import { useEffect, useState } from 'react'
 import { supabase } from '@/lib/supabase'
 import Link from 'next/link'
+import { useRole } from '@/lib/useRole'
 
 const STATUS_LABELS: Record<string, string> = {
   received: 'လက်ခံရရှိ',
@@ -25,10 +25,12 @@ const STATUS_COLORS: Record<string, string> = {
 }
 
 export default function RepairsPage() {
-const { t } = useLang()
+  const { isOwner } = useRole()
   const [list, setList] = useState<any[]>([])
   const [q, setQ] = useState('')
   const [filter, setFilter] = useState('active')
+  const [selected, setSelected] = useState<Set<number>>(new Set())
+  const [deleting, setDeleting] = useState(false)
 
   async function load() {
     let query = supabase.from('repairs').select('*').order('id', { ascending: false })
@@ -37,13 +39,57 @@ const { t } = useLang()
     else if (filter !== 'all') query = query.eq('status', filter)
     const { data } = await query
     setList(data ?? [])
+    setSelected(new Set())
   }
   useEffect(() => { load() }, [q, filter])
+
+  function toggle(id: number) {
+    const s = new Set(selected)
+    if (s.has(id)) s.delete(id)
+    else s.add(id)
+    setSelected(s)
+  }
+
+  function toggleAll() {
+    if (selected.size === list.length) setSelected(new Set())
+    else setSelected(new Set(list.map(r => r.id)))
+  }
+
+  async function deleteOne(id: number, ticketNo: string) {
+    if (!isOwner) return alert('⛔ Owner ပဲ ဖျက်လို့ ရပါတယ်')
+    if (!confirm(`⚠️ ${ticketNo} ကို ဖျက်မှာ သေချာလား?\n\nပြန်ယူလို့ မရပါ`)) return
+    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။')) return
+
+    setDeleting(true)
+    const { error } = await supabase.rpc('delete_repair', { p_repair_id: id })
+    setDeleting(false)
+    if (error) return alert('❌ ' + error.message)
+    alert('✅ ဖျက်ပြီးပါပြီ')
+    load()
+  }
+
+  async function deleteSelected() {
+    if (!isOwner) return alert('⛔ Owner ပဲ ဖျက်လို့ ရပါတယ်')
+    if (selected.size === 0) return alert('Ticket ရွေးပါ')
+    if (!confirm(`⚠️ Ticket ${selected.size} ခု ဖျက်မှာ သေချာလား?\n\nပြန်ယူလို့ မရပါ`)) return
+    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။')) return
+
+    setDeleting(true)
+    let ok = 0, fail = 0
+    for (const id of Array.from(selected)) {
+      const { error } = await supabase.rpc('delete_repair', { p_repair_id: id })
+      if (error) fail++
+      else ok++
+    }
+    setDeleting(false)
+    alert(`✅ ${ok} ခု ဖျက်ပြီး${fail > 0 ? `\n❌ ${fail} ခု မဖျက်နိုင်ဘူး` : ''}`)
+    load()
+  }
 
   return (
     <div className="p-6">
       <div className="flex justify-between items-center mb-4">
-        <h1 className="text-2xl font-bold text-green-800">Repair Desk</h1>
+        <h1 className="text-2xl font-bold text-green-800">🛠️ Service</h1>
         <Link href="/repairs/new" className="bg-green-600 hover:bg-green-700 text-white px-4 py-2 rounded font-medium">
           + Ticket အသစ်
         </Link>
@@ -68,10 +114,43 @@ const { t } = useLang()
         </select>
       </div>
 
+      {/* Bulk delete bar — Owner only */}
+      {isOwner && selected.size > 0 && (
+        <div className="bg-red-50 border-2 border-red-400 rounded p-3 mb-4 flex justify-between items-center">
+          <div className="text-sm font-medium text-red-800">
+            ⚠️ Ticket {selected.size} ခု ရွေးထားပြီ
+          </div>
+          <div className="flex gap-2">
+            <button
+              onClick={deleteSelected}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium text-sm disabled:opacity-50"
+            >
+              {deleting ? 'ဖျက်နေတယ်...' : `🗑️ ဖျက် (${selected.size})`}
+            </button>
+            <button
+              onClick={() => setSelected(new Set())}
+              className="bg-gray-200 hover:bg-gray-300 px-4 py-2 rounded font-medium text-sm"
+            >
+              ပယ်ဖျက်
+            </button>
+          </div>
+        </div>
+      )}
+
       <div className="bg-white rounded shadow overflow-hidden">
         <table className="w-full text-sm">
           <thead className="bg-green-50">
             <tr>
+              {isOwner && (
+                <th className="p-3 w-10">
+                  <input
+                    type="checkbox"
+                    checked={selected.size === list.length && list.length > 0}
+                    onChange={toggleAll}
+                  />
+                </th>
+              )}
               <th className="p-3 text-left">Ticket</th>
               <th className="p-3 text-left">Customer</th>
               <th className="p-3 text-left">Device</th>
@@ -79,14 +158,28 @@ const { t } = useLang()
               <th className="p-3 text-center">Status</th>
               <th className="p-3 text-right">Cost</th>
               <th className="p-3 text-left">Date</th>
+              {isOwner && <th className="p-3 text-right">Actions</th>}
             </tr>
           </thead>
           <tbody>
             {list.length === 0 && (
-              <tr><td colSpan={7} className="p-8 text-center text-gray-400">Ticket မရှိပါ</td></tr>
+              <tr>
+                <td colSpan={isOwner ? 9 : 7} className="p-8 text-center text-gray-400">
+                  Ticket မရှိပါ
+                </td>
+              </tr>
             )}
             {list.map(r => (
-              <tr key={r.id} className="border-t hover:bg-green-50 cursor-pointer">
+              <tr key={r.id} className={`border-t hover:bg-green-50 ${selected.has(r.id) ? 'bg-red-50' : ''}`}>
+                {isOwner && (
+                  <td className="p-3 text-center">
+                    <input
+                      type="checkbox"
+                      checked={selected.has(r.id)}
+                      onChange={() => toggle(r.id)}
+                    />
+                  </td>
+                )}
                 <td className="p-3">
                   <Link href={`/repairs/${r.id}`} className="font-mono text-green-700 font-medium hover:underline">
                     {r.ticket_no}
@@ -107,16 +200,34 @@ const { t } = useLang()
                   </span>
                 </td>
                 <td className="p-3 text-right font-bold">
-                  {Number(r.total_cost || r.estimated_cost).toLocaleString()}
+                  {Number(r.total_cost || r.estimated_cost || 0).toLocaleString()}
                 </td>
                 <td className="p-3 text-xs text-gray-500">
                   {new Date(r.created_at).toLocaleDateString()}
                 </td>
+                {isOwner && (
+                  <td className="p-3 text-right">
+                    <button
+                      onClick={() => deleteOne(r.id, r.ticket_no)}
+                      disabled={deleting}
+                      className="text-xs text-red-600 hover:underline disabled:opacity-50"
+                      title="ဖျက် (Owner only)"
+                    >
+                      🗑️
+                    </button>
+                  </td>
+                )}
               </tr>
             ))}
           </tbody>
         </table>
       </div>
+
+      {!isOwner && (
+        <div className="mt-4 p-3 bg-yellow-50 border border-yellow-200 rounded text-xs text-yellow-800">
+          💡 Ticket ဖျက်ခြင်းကို <strong>Owner</strong> ပဲ လုပ်နိုင်ပါတယ်
+        </div>
+      )}
     </div>
   )
 }

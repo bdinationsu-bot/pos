@@ -2,6 +2,7 @@
 import { useEffect, useState } from 'react'
 import { useParams, useRouter } from 'next/navigation'
 import { supabase } from '@/lib/supabase'
+import { useRole } from '@/lib/useRole'
 
 const STATUS_LABELS: Record<string, string> = {
   received: 'လက်ခံရရှိ',
@@ -15,15 +16,26 @@ const STATUS_LABELS: Record<string, string> = {
 
 const STATUS_FLOW = ['received', 'diagnosing', 'waiting_parts', 'in_progress', 'completed', 'delivered']
 
+const ERROR_LABELS = [
+  { key: 'error_lcd', label: 'LCD', icon: '📱' },
+  { key: 'error_battery', label: 'Battery', icon: '🔋' },
+  { key: 'error_camera', label: 'Camera', icon: '📷' },
+  { key: 'error_body', label: 'Body', icon: '📦' },
+  { key: 'error_back_glass', label: 'Back Glass', icon: '🔙' },
+  { key: 'error_glass', label: 'Glass', icon: '🔷' }
+]
+
 export default function RepairDetail() {
   const params = useParams()
-const id = params.id as string
+  const id = params.id as string
   const router = useRouter()
+  const { isOwner } = useRole()
+
   const [r, setR] = useState<any>(null)
   const [items, setItems] = useState<any[]>([])
   const [logs, setLogs] = useState<any[]>([])
   const [loading, setLoading] = useState(true)
-  const [techs, setTechs] = useState<any[]>([])
+  const [deleting, setDeleting] = useState(false)
 
   const [newItem, setNewItem] = useState({ name: '', qty: 1, unit_cost: 0 })
   const [diag, setDiag] = useState('')
@@ -45,9 +57,6 @@ const id = params.id as string
 
     const { data: lg } = await supabase.from('repair_logs').select('*').eq('repair_id', id).order('id', { ascending: false })
     setLogs(lg ?? [])
-
-    const { data: t } = await supabase.from('staff').select('*').eq('active', true).in('role', ['technician', 'manager'])
-    setTechs(t ?? [])
 
     setLoading(false)
   }
@@ -98,11 +107,7 @@ const id = params.id as string
   async function saveCosts() {
     const partsCost = items.reduce((s, x) => s + Number(x.total_cost), 0)
     const total = partsCost + laborCost
-    await updateField({
-      parts_cost: partsCost,
-      labor_cost: laborCost,
-      total_cost: total
-    })
+    await updateField({ parts_cost: partsCost, labor_cost: laborCost, total_cost: total })
     alert('သိမ်းပြီး')
   }
 
@@ -112,7 +117,7 @@ const id = params.id as string
     await updateField({ paid: newPaid })
     await supabase.from('cash_transactions').insert({
       type: 'in', amount: paidAmt, ref_type: 'repair', ref_id: +id,
-      note: `Repair ${r.ticket_no}`
+      note: `Service ${r.ticket_no}`
     })
     setPaidAmt(0)
     alert('ငွေလက်ခံပြီး')
@@ -123,7 +128,20 @@ const id = params.id as string
     alert('သိမ်းပြီး')
   }
 
-  if (loading) return <p className="p-6">စစ်နေတယ်...</p>
+  async function deleteTicket() {
+    if (!isOwner) return alert('⛔ Owner ပဲ ဖျက်လို့ ရပါတယ်')
+    if (!confirm(`⚠️ ${r.ticket_no} ကို ဖျက်မှာ သေချာလား?\n\n• Repair logs ဖျက်\n• Repair items ဖျက်\n• Ticket ဖျက်\n\nပြန်ယူလို့ မရပါ`)) return
+    if (!confirm('နောက်ဆုံး အတည်ပြုပါ။ DELETE ဖြစ်သွားရင် ပြန်မရနိုင်ပါ။')) return
+
+    setDeleting(true)
+    const { error } = await supabase.rpc('delete_repair', { p_repair_id: +id })
+    setDeleting(false)
+    if (error) return alert('❌ ' + error.message)
+    alert('✅ ဖျက်ပြီးပါပြီ')
+    router.push('/repairs')
+  }
+
+  if (loading) return <p className="p-6">...</p>
   if (!r) return <p className="p-6">Ticket မတွေ့ပါ</p>
 
   const partsCost = items.reduce((s, x) => s + Number(x.total_cost), 0)
@@ -141,16 +159,28 @@ const id = params.id as string
           </div>
         </div>
         <div className="flex gap-2">
-          <button onClick={() => window.open(`/print/ticket/${id}`, '_blank', 'width=900,height=1200')} className="bg-white border-2 border-green-600 text-green-700 px-4 py-2 rounded font-medium">
-  🖨️ Print
-</button>
+          <button
+            onClick={() => window.open(`/print/ticket/${id}`, '_blank', 'width=900,height=1200')}
+            className="bg-white border-2 border-green-600 text-green-700 px-4 py-2 rounded font-medium"
+          >
+            🖨️ Print
+          </button>
+          {isOwner && (
+            <button
+              onClick={deleteTicket}
+              disabled={deleting}
+              className="bg-red-600 hover:bg-red-700 text-white px-4 py-2 rounded font-medium disabled:opacity-50"
+            >
+              {deleting ? '...' : '🗑️ ဖျက်'}
+            </button>
+          )}
           <button onClick={() => router.push('/repairs')} className="bg-gray-200 px-4 py-2 rounded font-medium">
             ← ပြန်
           </button>
         </div>
       </div>
 
-      {/* Status Bar */}
+      {/* Status */}
       <div className="bg-white rounded shadow p-4 mb-4">
         <div className="flex items-center justify-between mb-3">
           <h2 className="font-bold text-green-700">Status</h2>
@@ -181,22 +211,40 @@ const id = params.id as string
         </div>
       </div>
 
+      {/* Error Types */}
+      {(r.error_lcd || r.error_battery || r.error_camera || r.error_body || r.error_back_glass || r.error_glass || r.error_other) && (
+        <div className="bg-white rounded shadow p-4 mb-4 border-2 border-orange-200">
+          <h2 className="font-bold mb-3 text-orange-700">🔧 ချို့ယွင်းချက်</h2>
+          <div className="flex flex-wrap gap-2">
+            {ERROR_LABELS.map(e => r[e.key] && (
+              <span key={e.key} className="bg-orange-50 border border-orange-300 text-orange-800 px-3 py-1 rounded text-sm font-medium">
+                {e.icon} {e.label}
+              </span>
+            ))}
+          </div>
+          {r.error_other && (
+            <div className="mt-2 text-sm text-gray-600">
+              <strong>အခြား:</strong> {r.error_other}
+            </div>
+          )}
+        </div>
+      )}
+
+      {/* Customer + Device */}
       <div className="grid grid-cols-2 gap-4 mb-4">
-        {/* Customer */}
         <div className="bg-white rounded shadow p-4">
-          <h2 className="font-bold mb-2 text-green-700">👤 Customer</h2>
+          <h2 className="font-bold mb-2 text-green-700">👤 ဖောက်သည်</h2>
           <div className="text-sm space-y-1">
             <div><strong>နာမည်:</strong> {r.customer_name || '-'}</div>
             <div><strong>ဖုန်း:</strong> {r.customer_phone || '-'}</div>
           </div>
         </div>
-
-        {/* Device */}
         <div className="bg-white rounded shadow p-4">
-          <h2 className="font-bold mb-2 text-green-700">📱 Device</h2>
+          <h2 className="font-bold mb-2 text-green-700">📱 စက်</h2>
           <div className="text-sm space-y-1">
             <div><strong>Model:</strong> {r.model} {r.storage} {r.color}</div>
-            <div><strong>IMEI:</strong> <span className="font-mono text-xs">{r.imei}</span></div>
+            {r.imei && <div><strong>IMEI:</strong> <span className="font-mono text-xs">{r.imei}</span></div>}
+            {r.serial && <div><strong>Serial:</strong> <span className="font-mono text-xs">{r.serial}</span></div>}
             <div><strong>Passcode:</strong> {r.passcode || '-'}</div>
             <div><strong>ပါလာ:</strong> {r.accessories || '-'}</div>
           </div>
@@ -211,7 +259,7 @@ const id = params.id as string
 
       {/* Diagnosis */}
       <div className="bg-white rounded shadow p-4 mb-4">
-        <h2 className="font-bold mb-2 text-blue-700">🔬 စစ်ဆေးတွေ့ရှိချက် (Diagnosis)</h2>
+        <h2 className="font-bold mb-2 text-blue-700">🔬 စစ်ဆေးတွေ့ရှိချက်</h2>
         <textarea
           value={diag}
           onChange={e => setDiag(e.target.value)}
@@ -224,31 +272,20 @@ const id = params.id as string
         </button>
       </div>
 
-      {/* Parts / Items */}
+      {/* Parts */}
       <div className="bg-white rounded shadow p-4 mb-4">
         <h2 className="font-bold mb-3 text-orange-700">🔧 အပိုပစ္စည်း / ဝန်ဆောင်မှု</h2>
 
         <div className="grid grid-cols-12 gap-2 mb-3">
-          <input
-            placeholder="အမည် (Screen, Battery...)"
-            value={newItem.name}
+          <input placeholder="အမည်" value={newItem.name}
             onChange={e => setNewItem({ ...newItem, name: e.target.value })}
-            className="border p-2 rounded col-span-6"
-          />
-          <input
-            type="number"
-            placeholder="Qty"
-            value={newItem.qty || 1}
+            className="border p-2 rounded col-span-6" />
+          <input type="number" placeholder="Qty" value={newItem.qty || 1}
             onChange={e => setNewItem({ ...newItem, qty: +e.target.value })}
-            className="border p-2 rounded col-span-2"
-          />
-          <input
-            type="number"
-            placeholder="တစ်ခုဈေး"
-            value={newItem.unit_cost || ''}
+            className="border p-2 rounded col-span-2" />
+          <input type="number" placeholder="တစ်ခုဈေး" value={newItem.unit_cost || ''}
             onChange={e => setNewItem({ ...newItem, unit_cost: +e.target.value })}
-            className="border p-2 rounded col-span-3"
-          />
+            className="border p-2 rounded col-span-3" />
           <button onClick={addItem} className="bg-green-600 text-white rounded col-span-1">+</button>
         </div>
 
@@ -291,12 +328,9 @@ const id = params.id as string
         <div className="grid grid-cols-2 gap-3">
           <div>
             <label className="block text-sm mb-1">လုပ်ခလုပ် (Labor)</label>
-            <input
-              type="number"
-              value={laborCost || ''}
+            <input type="number" value={laborCost || ''}
               onChange={e => setLaborCost(+e.target.value || 0)}
-              className="border p-2 rounded w-full"
-            />
+              className="border p-2 rounded w-full" />
           </div>
           <div>
             <label className="block text-sm mb-1">ရက်စွဲ</label>
@@ -338,13 +372,9 @@ const id = params.id as string
         <div className="grid grid-cols-3 gap-3 items-end">
           <div>
             <label className="block text-sm mb-1">လက်ခံငွေ</label>
-            <input
-              type="number"
-              value={paidAmt || ''}
+            <input type="number" value={paidAmt || ''}
               onChange={e => setPaidAmt(+e.target.value || 0)}
-              className="border p-2 rounded w-full"
-              placeholder="0"
-            />
+              className="border p-2 rounded w-full" placeholder="0" />
           </div>
           <button onClick={recordPayment} className="bg-green-600 hover:bg-green-700 text-white py-2 rounded">
             လက်ခံ
@@ -364,13 +394,9 @@ const id = params.id as string
         <div className="grid grid-cols-3 gap-3 items-end">
           <div>
             <label className="block text-sm mb-1">ရက် (days)</label>
-            <input
-              type="number"
-              value={warrantyDays || ''}
+            <input type="number" value={warrantyDays || ''}
               onChange={e => setWarrantyDays(+e.target.value || 0)}
-              className="border p-2 rounded w-full"
-              placeholder="90"
-            />
+              className="border p-2 rounded w-full" placeholder="90" />
           </div>
           <button onClick={saveWarranty} className="bg-blue-600 hover:bg-blue-700 text-white py-2 rounded">
             သိမ်း
