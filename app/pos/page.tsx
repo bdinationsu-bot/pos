@@ -64,6 +64,7 @@ export default function POSPage() {
   const [instCount, setInstCount] = useState(6)
   const [instDP, setInstDP] = useState(0)
   const [instDeposit, setInstDeposit] = useState(0)
+  const [instMicrofinance, setInstMicrofinance] = useState('')
   const [instStartDate, setInstStartDate] = useState(new Date().toISOString().slice(0, 10))
 
   useEffect(() => {
@@ -231,7 +232,7 @@ export default function POSPage() {
     if (!validateCheckout()) return
     setPayRef('')
     if (cat.code === 'installment') {
-      setInstDP(0); setInstCount(6); setInstType('rent2own')
+      setInstDP(0); setInstCount(6); setInstDeposit(0); setInstMicrofinance(''); setInstType('rent2own')
       setInstStartDate(new Date().toISOString().slice(0, 10))
       setShowInstModal(true)
       return
@@ -275,7 +276,8 @@ export default function POSPage() {
         p_deposit_amount: instData.deposit || 0,
         p_count: instData.count,
         p_start_date: instData.startDate,
-        p_note: instData.type === 'rent2own' ? 'Rent2Own' : 'Maharbawga'
+        p_note: instData.type === 'rent2own' ? 'Rent2Own' : 'Maharbawga',
+        p_microfinance: instData.microfinance || null
       })
       if (instErr) {
         setLoading(false)
@@ -305,6 +307,7 @@ export default function POSPage() {
       count: instCount,
       dp: instDP,
       deposit: instDeposit,
+      microfinance: instMicrofinance,
       startDate: instStartDate
     })
   }

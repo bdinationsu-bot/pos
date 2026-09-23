@@ -33,11 +33,11 @@ export default function InstallmentsPage() {
   // Summary
   const r2oList = list.filter(i => i.installment_type === 'rent2own')
   const mhbList = list.filter(i => i.installment_type === 'maharbawga')
-  const r2oBalance = r2oList.reduce((s, x) => s + Math.max(0, Number(x.balance)), 0)
-  const mhbBalance = mhbList.reduce((s, x) => s + Math.max(0, Number(x.balance)), 0)
+  const r2oBalance = r2oList.reduce((s, x) => s + Math.max(0, Number(x.microfinance_balance || 0)), 0)
+  const mhbBalance = mhbList.reduce((s, x) => s + Math.max(0, Number(x.microfinance_balance || 0)), 0)
   const totalBalance = r2oBalance + mhbBalance
-  const r2oCount = r2oList.filter(i => Number(i.balance) > 0).length
-  const mhbCount = mhbList.filter(i => Number(i.balance) > 0).length
+  const r2oCount = r2oList.filter(i => Number(i.microfinance_balance || 0) > 0).length
+  const mhbCount = mhbList.filter(i => Number(i.microfinance_balance || 0) > 0).length
 
   return (
     <div className="p-6">
@@ -49,10 +49,10 @@ export default function InstallmentsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-4 gap-4 mb-6">
+      <div className="grid grid-cols-3 gap-4 mb-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-5">
           <div className="flex justify-between items-start mb-2">
-            <div className="text-sm opacity-90">🏠 Rent2Own — ရရန်ကျန်</div>
+            <div className="text-sm opacity-90">🏠 Rent2Own — MF ရရန်ကျန်</div>
             <div className="text-2xl">🔑</div>
           </div>
           <div className="text-3xl font-bold mb-1">{r2oBalance.toLocaleString()}</div>
@@ -60,20 +60,13 @@ export default function InstallmentsPage() {
         </div>
         <div className="bg-gradient-to-br from-purple-500 to-purple-600 text-white rounded-lg shadow-lg p-5">
           <div className="flex justify-between items-start mb-2">
-            <div className="text-sm opacity-90">🕌 Maharbawga — ရရန်ကျန်</div>
+            <div className="text-sm opacity-90">🕌 Maharbawga — MF ရရန်ကျန်</div>
             <div className="text-2xl">💎</div>
           </div>
           <div className="text-3xl font-bold mb-1">{mhbBalance.toLocaleString()}</div>
           <div className="text-xs opacity-80">Ks • {mhbCount} invoice ကျန်</div>
         </div>
-        <div className="bg-gradient-to-br from-green-500 to-green-600 text-white rounded-lg shadow-lg p-5">
-          <div className="flex justify-between items-start mb-2">
-            <div className="text-sm opacity-90">📊 စုစုပေါင်း ရရန်ကျန်</div>
-            <div className="text-2xl">💰</div>
-          </div>
-          <div className="text-3xl font-bold mb-1">{totalBalance.toLocaleString()}</div>
-          <div className="text-xs opacity-80">Ks • {r2oCount + mhbCount} invoice</div>
-        </div>
+        
       
         <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-lg shadow-lg p-5">
           <div className="flex justify-between items-start mb-2">
@@ -117,7 +110,7 @@ export default function InstallmentsPage() {
                 <th className="p-3 text-right">DP</th>
                 <th className="p-3 text-right">Financed</th>
                 <th className="p-3 text-right">Paid</th>
-                <th className="p-3 text-right">Balance</th>
+                <th className="p-3 text-right">MF Balance</th>
                 <th className="p-3 text-center">Progress</th>
                 <th className="p-3 text-center">Status</th>
               </tr>
@@ -154,8 +147,8 @@ export default function InstallmentsPage() {
                     <td className="p-3 text-right text-blue-700">{Number(i.down_payment).toLocaleString()}</td>
                     <td className="p-3 text-right">{Number(i.financed_amount).toLocaleString()}</td>
                     <td className="p-3 text-right text-green-700">{Number(i.total_paid).toLocaleString()}</td>
-                    <td className={`p-3 text-right font-bold ${Number(i.balance) > 0 ? 'text-red-700' : 'text-gray-400'}`}>
-                      {Number(i.balance).toLocaleString()}
+                    <td className={`p-3 text-right font-bold ${Number(i.microfinance_balance) > 0 ? 'text-red-700' : 'text-gray-400'}`}>
+                      {Number(i.microfinance_balance).toLocaleString()}
                     </td>
                     <td className="p-3 text-center">
                       <div className="w-20 bg-gray-200 rounded-full h-2 mx-auto">
