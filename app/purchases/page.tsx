@@ -73,7 +73,7 @@ export default function PurchasesPage() {
             )}
             {list.map(p => (
               <tr key={p.id} className="border-t hover:bg-green-50">
-                <td className="p-3 font-mono text-xs">{p.purchase_no}</td>
+                <td className="p-3 font-mono text-xs"><Link href={`/purchases/${p.id}`} className="text-green-700 font-medium hover:underline">{p.purchase_no}</Link></td>
                 <td className="p-3">{p.purchase_date}</td>
                 <td className="p-3">{p.supplier?.name || '-'}</td>
                 <td className="p-3 text-center capitalize">{p.purchase_type}</td>
