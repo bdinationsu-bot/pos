@@ -63,6 +63,7 @@ export default function POSPage() {
   const [instType, setInstType] = useState<'rent2own' | 'maharbawga'>('rent2own')
   const [instCount, setInstCount] = useState(6)
   const [instDP, setInstDP] = useState(0)
+  const [instDeposit, setInstDeposit] = useState(0)
   const [instStartDate, setInstStartDate] = useState(new Date().toISOString().slice(0, 10))
 
   useEffect(() => {
@@ -271,6 +272,7 @@ export default function POSPage() {
         p_type: instData.type,
         p_total_amount: total,
         p_down_payment: instData.dp,
+        p_deposit_amount: instData.deposit || 0,
         p_count: instData.count,
         p_start_date: instData.startDate,
         p_note: instData.type === 'rent2own' ? 'Rent2Own' : 'Maharbawga'
@@ -302,6 +304,7 @@ export default function POSPage() {
       type: instType,
       count: instCount,
       dp: instDP,
+      deposit: instDeposit,
       startDate: instStartDate
     })
   }
@@ -661,6 +664,17 @@ export default function POSPage() {
                   <div className="text-sm font-bold">Maharbawga</div>
                   <div className="text-xs opacity-75 mt-1">မဟာဗောဂ</div>
                 </button>
+              </div>
+            </div>
+
+            
+            {/* Deposit */}
+            <div className="mb-3">
+              <label className="block text-sm font-medium mb-1">Deposit (Ks)</label>
+              <input type="number" value={instDeposit || ''} onChange={e => setInstDeposit(+e.target.value || 0)}
+                className="border p-2 rounded w-full text-lg font-bold text-purple-700" placeholder="0" />
+              <div className="text-xs text-gray-500 mt-1">
+                Deposit က အာမခံ ငွေ — Customer ဆပ်ပြီးရင် ပြန်အမ်းနိုင်တယ်
               </div>
             </div>
 

@@ -49,7 +49,7 @@ export default function InstallmentsPage() {
       </div>
 
       {/* Summary Cards */}
-      <div className="grid grid-cols-3 gap-4 mb-6">
+      <div className="grid grid-cols-4 gap-4 mb-6">
         <div className="bg-gradient-to-br from-blue-500 to-blue-600 text-white rounded-lg shadow-lg p-5">
           <div className="flex justify-between items-start mb-2">
             <div className="text-sm opacity-90">🏠 Rent2Own — ရရန်ကျန်</div>
@@ -74,7 +74,18 @@ export default function InstallmentsPage() {
           <div className="text-3xl font-bold mb-1">{totalBalance.toLocaleString()}</div>
           <div className="text-xs opacity-80">Ks • {r2oCount + mhbCount} invoice</div>
         </div>
-      </div>
+      
+        <div className="bg-gradient-to-br from-orange-500 to-red-600 text-white rounded-lg shadow-lg p-5">
+          <div className="flex justify-between items-start mb-2">
+            <div className="text-sm opacity-90">💼 Microfinance ရရန်ကျန်</div>
+            <div className="text-2xl">💰</div>
+          </div>
+          <div className="text-3xl font-bold mb-1">
+            {(list.filter(i => i.microfinance_name).reduce((s, x) => s + Math.max(0, Number(x.balance)), 0)).toLocaleString()}
+          </div>
+          <div className="text-xs opacity-80">Ks • {list.filter(i => i.microfinance_name && Number(i.balance) > 0).length} invoice</div>
+        </div>
+</div>
 
       {/* Filters */}
       <div className="flex gap-3 mb-4 flex-wrap">

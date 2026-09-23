@@ -136,6 +136,14 @@ export default function InstallmentDetail() {
           <div className="text-xs text-gray-600">Down Payment</div>
           <div className="text-xl font-bold text-purple-700">{Number(inst.down_payment).toLocaleString()}</div>
         </div>
+        <div className="bg-white rounded shadow p-4 border-l-4 border-purple-500">
+          <div className="text-xs text-gray-600">Deposit (အာမခံ)</div>
+          <div className="text-xl font-bold text-purple-700">{Number(inst.deposit_amount || 0).toLocaleString()}</div>
+          {Number(inst.deposit_collected || 0) > 0 && (
+            <div className="text-xs text-green-700 mt-1">✅ ရပြီး: {Number(inst.deposit_collected).toLocaleString()}</div>
+          )}
+        </div>
+
         <div className="bg-white rounded shadow p-4 border-l-4 border-green-500">
           <div className="text-xs text-gray-600">ပေးပြီး</div>
           <div className="text-xl font-bold text-green-700">{Number(inst.total_paid).toLocaleString()}</div>
