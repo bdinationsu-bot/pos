@@ -40,12 +40,11 @@ export default function TicketPrint() {
   const errors = [
     { label: 'LCD / Display', checked: r.error_lcd, icon: '📱' },
     { label: 'Battery', checked: r.error_battery, icon: '🔋' },
+    { label: 'Camera', checked: r.error_camera, icon: '📷' },
     { label: 'Body / Casing', checked: r.error_body, icon: '📦' },
-    { label: 'Face ID / Touch ID', checked: r.error_faceid, icon: '👁️' },
-    { label: 'Camera', checked: r.error_camera, icon: '📷' }
+    { label: 'Back Glass', checked: r.error_back_glass, icon: '🔙' },
+    { label: 'Glass', checked: r.error_glass, icon: '🔷' }
   ]
-
-  const selectedErrors = errors.filter(e => e.checked)
 
   return (
     <div style={{ background: '#fff', minHeight: '100vh', padding: '10mm', fontFamily: '-apple-system, "Noto Sans Myanmar", Padauk, Arial, sans-serif', color: '#111' }}>
@@ -102,7 +101,7 @@ export default function TicketPrint() {
 
       {/* CUSTOMER + DEVICE */}
       <div style={{ display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 20, marginBottom: 20 }}>
-        <div style={{ border: `1px solid #e5e7eb`, borderRadius: 8, padding: '14px 16px' }}>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '14px 16px' }}>
           <div style={{ fontSize: 13, color: greenDark, fontWeight: 'bold', marginBottom: 8, borderBottom: `1px dashed ${green}`, paddingBottom: 4 }}>
             👤 ဖောက်သည် အချက်အလက်
           </div>
@@ -114,7 +113,7 @@ export default function TicketPrint() {
           </table>
         </div>
 
-        <div style={{ border: `1px solid #e5e7eb`, borderRadius: 8, padding: '14px 16px' }}>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '14px 16px' }}>
           <div style={{ fontSize: 13, color: greenDark, fontWeight: 'bold', marginBottom: 8, borderBottom: `1px dashed ${green}`, paddingBottom: 4 }}>
             📱 စက် အချက်အလက်
           </div>
@@ -129,35 +128,47 @@ export default function TicketPrint() {
         </div>
       </div>
 
-      {/* ERROR TYPES CHECKLIST */}
+      {/* ERROR TYPES */}
       <div style={{ border: `2px solid ${green}`, borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
-        <div style={{ fontSize: 14, color: greenDark, fontWeight: 'bold', marginBottom: 12, display: 'flex', alignItems: 'center', gap: 6 }}>
+        <div style={{ fontSize: 14, color: greenDark, fontWeight: 'bold', marginBottom: 12 }}>
           🔧 ချို့ယွင်းချက် အမျိုးအစား (Error Types)
         </div>
-        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(5, 1fr)', gap: 10 }}>
+        <div style={{ display: 'grid', gridTemplateColumns: 'repeat(3, 1fr)', gap: 10 }}>
           {errors.map((e, i) => (
             <div key={i} style={{
               border: e.checked ? `2px solid ${green}` : '1px solid #d1d5db',
               background: e.checked ? greenLight : '#fff',
               borderRadius: 6,
-              padding: '10px 8px',
-              textAlign: 'center'
+              padding: '10px 12px',
+              display: 'flex',
+              alignItems: 'center',
+              gap: 10
             }}>
-              <div style={{ fontSize: 22, marginBottom: 4 }}>{e.icon}</div>
-              <div style={{ fontSize: 10, fontWeight: 'bold', color: e.checked ? greenDark : '#666' }}>
+              <div style={{
+                width: 20, height: 20, border: `2px solid ${e.checked ? green : '#999'}`,
+                borderRadius: 4, background: e.checked ? green : 'white',
+                display: 'flex', alignItems: 'center', justifyContent: 'center',
+                color: 'white', fontWeight: 'bold', fontSize: 14
+              }}>
+                {e.checked ? '✓' : ''}
+              </div>
+              <span style={{ fontSize: 20 }}>{e.icon}</span>
+              <span style={{ fontSize: 12, fontWeight: 'bold', color: e.checked ? greenDark : '#666' }}>
                 {e.label}
-              </div>
-              <div style={{ fontSize: 14, marginTop: 4, color: e.checked ? green : '#ccc', fontWeight: 'bold' }}>
-                {e.checked ? '☑' : '☐'}
-              </div>
+              </span>
             </div>
           ))}
         </div>
+        {r.error_other && (
+          <div style={{ marginTop: 12, fontSize: 12, color: '#666' }}>
+            <strong>အခြား:</strong> {r.error_other}
+          </div>
+        )}
       </div>
 
-      {/* ISSUE DESCRIPTION */}
-      <div style={{ border: `1px solid #e5e7eb`, borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
-        <div style={{ fontSize: 13, color: '#dc2626', fontWeight: 'bold', marginBottom: 8, borderBottom: `1px dashed #fca5a5`, paddingBottom: 4 }}>
+      {/* ISSUE */}
+      <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
+        <div style={{ fontSize: 13, color: '#dc2626', fontWeight: 'bold', marginBottom: 8, borderBottom: '1px dashed #fca5a5', paddingBottom: 4 }}>
           ⚠️ ပြဿနာ အသေးစိတ်
         </div>
         <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap', minHeight: 40 }}>
@@ -165,19 +176,17 @@ export default function TicketPrint() {
         </div>
       </div>
 
-      {/* DIAGNOSIS (if any) */}
+      {/* DIAGNOSIS */}
       {r.diagnosis && (
-        <div style={{ border: `1px solid #e5e7eb`, borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
-          <div style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold', marginBottom: 8, borderBottom: `1px dashed #93c5fd`, paddingBottom: 4 }}>
+        <div style={{ border: '1px solid #e5e7eb', borderRadius: 8, padding: '14px 16px', marginBottom: 20 }}>
+          <div style={{ fontSize: 13, color: '#2563eb', fontWeight: 'bold', marginBottom: 8, borderBottom: '1px dashed #93c5fd', paddingBottom: 4 }}>
             🔬 စစ်ဆေးတွေ့ရှိချက်
           </div>
-          <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>
-            {r.diagnosis}
-          </div>
+          <div style={{ fontSize: 12, lineHeight: 1.7, whiteSpace: 'pre-wrap' }}>{r.diagnosis}</div>
         </div>
       )}
 
-      {/* PRICE SUMMARY */}
+      {/* PRICE */}
       <div style={{ border: `2px solid ${green}`, borderRadius: 8, padding: '14px 16px', marginBottom: 20, background: greenLight }}>
         <div style={{ fontSize: 14, color: greenDark, fontWeight: 'bold', marginBottom: 12 }}>
           💰 ကုန်ကျစရိတ်
@@ -232,29 +241,23 @@ export default function TicketPrint() {
       <div style={{ borderTop: `2px solid ${green}`, paddingTop: 20, marginTop: 20, display: 'grid', gridTemplateColumns: '1fr 1fr', gap: 30, fontSize: 12, color: '#666' }}>
         <div>
           <div style={{ marginBottom: 60 }}>ဖောက်သည် လက်မှတ်:</div>
-          <div style={{ borderTop: '1px solid #999', paddingTop: 4, width: '80%' }}>
-            Customer Signature
-          </div>
+          <div style={{ borderTop: '1px solid #999', paddingTop: 4, width: '80%' }}>Customer Signature</div>
           <div style={{ fontSize: 10, marginTop: 4, color: '#999' }}>Date: ___________________</div>
         </div>
         <div style={{ textAlign: 'right' }}>
           <div style={{ marginBottom: 60 }}>လက်ခံ ဝန်ထမ်း လက်မှတ်:</div>
-          <div style={{ borderTop: '1px solid #999', paddingTop: 4, width: '80%', marginLeft: 'auto' }}>
-            Authorized Signature
-          </div>
+          <div style={{ borderTop: '1px solid #999', paddingTop: 4, width: '80%', marginLeft: 'auto' }}>Authorized Signature</div>
           <div style={{ fontSize: 10, marginTop: 4, color: '#999' }}>Date: ___________________</div>
         </div>
       </div>
 
       {/* FOOTER */}
-      <div style={{ textAlign: 'center', marginTop: 30, paddingTop: 15, borderTop: `1px solid #e5e7eb` }}>
+      <div style={{ textAlign: 'center', marginTop: 30, paddingTop: 15, borderTop: '1px solid #e5e7eb' }}>
         <div style={{ fontSize: 13, color: greenDark, fontWeight: 'bold' }}>
           {shop.footer_text || '🙏 ကျေးဇူးတင်ပါသည်'}
         </div>
         {shop.footer_text_2 && (
-          <div style={{ fontSize: 10, color: '#888', marginTop: 6 }}>
-            {shop.footer_text_2}
-          </div>
+          <div style={{ fontSize: 10, color: '#888', marginTop: 6 }}>{shop.footer_text_2}</div>
         )}
       </div>
     </div>

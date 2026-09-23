@@ -38,7 +38,7 @@ const translations: Record<string, { en: string; mm: string }> = {
   'menu.inventory': { en: 'Inventory', mm: 'လက်ကျန် ပစ္စည်း' },
   'menu.accessories': { en: 'Accessories', mm: 'ဆက်စပ်ပစ္စည်း' },
   'menu.tradein': { en: 'Trade-in', mm: 'အဟောင်းလဲ' },
-  'menu.repairs': { en: 'Repair Desk', mm: 'ပြုပြင်ဌာန' },
+  'menu.repairs': { en: 'Service', mm: 'ပြုပြင်ဝန်ဆောင်မှု' },
   'menu.suppliers': { en: 'Suppliers', mm: 'ကုန်သွင်းသူများ' },
   'menu.purchases': { en: 'Purchases', mm: 'ဝယ်ယူမှု' },
   'menu.accounting': { en: 'Accounting', mm: 'စာရင်းအင်း' },
@@ -74,7 +74,7 @@ const translations: Record<string, { en: string; mm: string }> = {
   'status.defective': { en: 'Defective', mm: 'ချို့ယွင်း' },
   'status.parts': { en: 'Parts', mm: 'အပိုပစ္စည်း' },
 
-  'repair.title': { en: 'Repair Desk', mm: 'ပြုပြင်ဌာန' },
+  'repair.title': { en: 'Service', mm: 'ပြုပြင်ဝန်ဆောင်မှု' },
   'repair.new_ticket': { en: '+ New Ticket', mm: '+ Ticket အသစ်' },
   'repair.ticket': { en: 'Ticket', mm: 'Ticket' },
   'repair.customer': { en: 'Customer', mm: 'ဖောက်သည်' },
