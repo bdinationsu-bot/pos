@@ -32,6 +32,11 @@ export default function NewPurchase() {
   const [date, setDate] = useState(new Date().toISOString().slice(0,10))
   const [saving, setSaving] = useState(false)
 
+  // Manual supplier modal
+  const [showNewSupplier, setShowNewSupplier] = useState(false)
+  const [newSupplier, setNewSupplier] = useState({ name: '', phone: '', company: '', address: '', note: '' })
+  const [creatingSupplier, setCreatingSupplier] = useState(false)
+
   useEffect(() => {
     (async () => {
       const { data: sup } = await supabase.from('suppliers').select('*').order('name')
@@ -40,6 +45,35 @@ export default function NewPurchase() {
       setAccessories(acc ?? [])
     })()
   }, [])
+
+  async function createSupplier() {
+    if (!newSupplier.name) return alert('နာမည် ထည့်ပါ')
+    setCreatingSupplier(true)
+
+    const { data, error } = await supabase
+      .from('suppliers')
+      .insert({
+        name: newSupplier.name,
+        phone: newSupplier.phone || null,
+        company: newSupplier.company || null,
+        address: newSupplier.address || null,
+        note: newSupplier.note || null
+      })
+      .select()
+      .single()
+
+    setCreatingSupplier(false)
+
+    if (error) return alert('Error: ' + error.message)
+
+    // Reload suppliers + auto select new one
+    const { data: sup } = await supabase.from('suppliers').select('*').order('name')
+    setSuppliers(sup ?? [])
+    setSupplierId(data.id)
+    setShowNewSupplier(false)
+    setNewSupplier({ name: '', phone: '', company: '', address: '', note: '' })
+    alert('✅ Supplier အသစ် ထည့်ပြီးပါပြီ')
+  }
 
   function addDevice() {
     setItems([...items, {
@@ -78,7 +112,7 @@ export default function NewPurchase() {
   const balance = total - paid
 
   async function save() {
-    if (!supplierId) return alert('Supplier ရွေးပါ')
+    if (!supplierId) return alert('Supplier ရွေးပါ (သို့) အသစ် ထည့်ပါ')
     if (!items.length) return alert('အနည်းဆုံး item တစ်ခု ထည့်ပါ')
     for (const it of items) {
       if (it.item_type === 'device' && (!it.model || !it.imei)) {
@@ -131,19 +165,38 @@ export default function NewPurchase() {
       </div>
 
       <div className="bg-white rounded shadow p-4 mb-4 grid grid-cols-3 gap-3">
+        {/* Supplier — Dropdown + New button */}
         <div>
-          <label className="block text-sm mb-1">Supplier *</label>
-          <select
-            value={supplierId ?? ''}
-            onChange={e => setSupplierId(e.target.value ? +e.target.value : null)}
-            className="border p-2 rounded w-full"
-          >
-            <option value="">-- ရွေး --</option>
-            {suppliers.map(s => (
-              <option key={s.id} value={s.id}>{s.name} {s.company ? `(${s.company})` : ''}</option>
-            ))}
-          </select>
+          <label className="block text-sm mb-1 font-medium">Supplier *</label>
+          <div className="flex gap-2">
+            <select
+              value={supplierId ?? ''}
+              onChange={e => setSupplierId(e.target.value ? +e.target.value : null)}
+              className="border p-2 rounded flex-1"
+            >
+              <option value="">-- ရွေး --</option>
+              {suppliers.map(s => (
+                <option key={s.id} value={s.id}>
+                  {s.name} {s.company ? `(${s.company})` : ''}
+                </option>
+              ))}
+            </select>
+            <button
+              type="button"
+              onClick={() => setShowNewSupplier(true)}
+              className="bg-green-600 hover:bg-green-700 text-white px-3 py-2 rounded font-bold text-lg"
+              title="Supplier အသစ် ထည့်"
+            >
+              +
+            </button>
+          </div>
+          {supplierId && suppliers.find(s => s.id === supplierId) && (
+            <div className="text-xs text-gray-500 mt-1">
+              📞 {suppliers.find(s => s.id === supplierId)?.phone || 'No phone'}
+            </div>
+          )}
         </div>
+
         <div>
           <label className="block text-sm mb-1">ရက်စွဲ</label>
           <input type="date" value={date} onChange={e => setDate(e.target.value)} className="border p-2 rounded w-full" />
@@ -154,6 +207,7 @@ export default function NewPurchase() {
         </div>
       </div>
 
+      {/* Items */}
       <div className="bg-white rounded shadow p-4 mb-4">
         <h2 className="font-bold mb-3">Items ({items.length})</h2>
         {items.length === 0 ? (
@@ -256,10 +310,84 @@ export default function NewPurchase() {
         <button onClick={save} disabled={saving} className="bg-green-600 hover:bg-green-700 text-white px-8 py-3 rounded font-medium disabled:opacity-50">
           {saving ? 'သိမ်းနေတယ်...' : '💾 သိမ်း'}
         </button>
-        <button onClick={() => router.push('/purchases')} className="bg-gray-200 px-8 py-3 rounded font-medium">
-          ပယ်ဖျက်
-        </button>
+        <button onClick={() => router.push('/purchases')} className="bg-gray-200 px-8 py-3 rounded font-medium">ပယ်ဖျက်</button>
       </div>
+
+      {/* Manual Supplier Modal */}
+      {showNewSupplier && (
+        <div className="fixed inset-0 bg-black/50 flex items-center justify-center z-50 p-4">
+          <div className="bg-white rounded-lg shadow-xl max-w-lg w-full p-6">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-lg font-bold text-green-800">➕ Supplier အသစ် ထည့်</h2>
+              <button onClick={() => setShowNewSupplier(false)} className="text-gray-400 hover:text-gray-700 text-2xl leading-none">×</button>
+            </div>
+
+            <div className="space-y-3 mb-4">
+              <div>
+                <label className="block text-sm font-medium mb-1">
+                  နာမည် <span className="text-red-500">*</span>
+                </label>
+                <input
+                  value={newSupplier.name}
+                  onChange={e => setNewSupplier({ ...newSupplier, name: e.target.value })}
+                  placeholder="Supplier နာမည်"
+                  className="border p-2 rounded w-full"
+                  autoFocus
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ဖုန်း</label>
+                <input
+                  value={newSupplier.phone}
+                  onChange={e => setNewSupplier({ ...newSupplier, phone: e.target.value })}
+                  placeholder="09xxxxxxxxx"
+                  className="border p-2 rounded w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">ကုမ္ပဏီ</label>
+                <input
+                  value={newSupplier.company}
+                  onChange={e => setNewSupplier({ ...newSupplier, company: e.target.value })}
+                  placeholder="Company Name"
+                  className="border p-2 rounded w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">လိပ်စာ</label>
+                <input
+                  value={newSupplier.address}
+                  onChange={e => setNewSupplier({ ...newSupplier, address: e.target.value })}
+                  placeholder="Address"
+                  className="border p-2 rounded w-full"
+                />
+              </div>
+              <div>
+                <label className="block text-sm font-medium mb-1">မှတ်ချက်</label>
+                <input
+                  value={newSupplier.note}
+                  onChange={e => setNewSupplier({ ...newSupplier, note: e.target.value })}
+                  placeholder="optional"
+                  className="border p-2 rounded w-full"
+                />
+              </div>
+            </div>
+
+            <div className="flex gap-2">
+              <button
+                onClick={createSupplier}
+                disabled={creatingSupplier}
+                className="bg-green-600 hover:bg-green-700 text-white flex-1 py-2 rounded font-medium disabled:opacity-50"
+              >
+                {creatingSupplier ? '...' : '✅ သိမ်း + ရွေး'}
+              </button>
+              <button onClick={() => setShowNewSupplier(false)} className="bg-gray-200 px-4 py-2 rounded">
+                ပယ်ဖျက်
+              </button>
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   )
 }
